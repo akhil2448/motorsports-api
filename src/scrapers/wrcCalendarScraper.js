@@ -1,3 +1,4 @@
+require("../../src/config/env");
 const axios = require("axios");
 
 const CALENDAR_URL = "https://www.wrc.com/en/calendar?rb3TabId=upcoming";

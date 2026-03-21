@@ -19,7 +19,7 @@ function getPdfHash(url) {
 
   if (!filename) return null;
 
-  return crypto.createHash("md5").update(filename).digest("hex");
+  return crypto.createHash("md5").update(url).digest("hex");
 }
 
 module.exports = {

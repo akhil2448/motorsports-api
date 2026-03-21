@@ -14,6 +14,24 @@ const countryToTimezone = {
   "Saudi Arabia": "Asia/Riyadh",
 };
 
+/* ---------------------------------- */
+/* FORMAT OFFSET → UTC+HH:MM          */
+/* ---------------------------------- */
+
+function formatOffset(diff) {
+  const sign = diff >= 0 ? "+" : "-";
+  const abs = Math.abs(diff);
+
+  const hours = String(Math.floor(abs)).padStart(2, "0");
+  const minutes = String(Math.round((abs % 1) * 60)).padStart(2, "0");
+
+  return `UTC${sign}${hours}:${minutes}`;
+}
+
+/* ---------------------------------- */
+/* GET OFFSET FROM COUNTRY + DATE     */
+/* ---------------------------------- */
+
 function getUtcOffset(dateStr, country) {
   const normalizedCountry = country?.trim();
 
@@ -25,7 +43,7 @@ function getUtcOffset(dateStr, country) {
 
   if (!tz) {
     console.warn("⚠️ Unknown timezone for country:", country);
-    return "UTC+0";
+    return "UTC+00:00";
   }
 
   try {
@@ -36,15 +54,11 @@ function getUtcOffset(dateStr, country) {
 
     const diff = (local - utc) / (1000 * 60 * 60);
 
-    const sign = diff >= 0 ? "+" : "-";
-    const abs = Math.abs(diff);
-
-    return `UTC${sign}${abs}`;
+    return formatOffset(diff); // ✅ FIXED FORMAT
   } catch (err) {
     console.warn("⚠️ Timezone calc failed:", err.message);
-    return "UTC+0";
+    return "UTC+00:00";
   }
 }
 
-// safe export
 module.exports = getUtcOffset;

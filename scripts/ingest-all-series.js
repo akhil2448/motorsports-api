@@ -1,3 +1,4 @@
+require("../src/config/env");
 const ingestionService = require("../src/services/ingestionService");
 
 const providers = ["f1", "wrc", "motogp"];

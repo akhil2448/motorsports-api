@@ -1,3 +1,4 @@
+require("../src/config/env");
 const pool = require("../db/pool");
 
 async function getCalendar(days = 7) {

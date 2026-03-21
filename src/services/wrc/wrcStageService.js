@@ -1,3 +1,4 @@
+require("../../../src/config/env");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");

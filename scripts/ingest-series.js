@@ -1,3 +1,7 @@
+require("../src/config/env");
+
+//console.log("DB URL:", process.env.DATABASE_URL);
+
 const ingestionService = require("../src/services/ingestionService");
 
 async function run() {

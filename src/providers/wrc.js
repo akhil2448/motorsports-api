@@ -1,5 +1,5 @@
+require("../../src/config/env");
 const axios = require("axios");
-const cheerio = require("cheerio");
 
 const BASE_URL = "https://p-p.redbull.com/rb-wrccom-lintegration-yv-prod/api";
 
@@ -9,6 +9,87 @@ const competitiveStageTypes = [
   "PowerStage",
 ];
 
+/* ---------------------------------- */
+/* FETCH STAGES FOR EVENT             */
+/* ---------------------------------- */
+
+async function fetchStages(eventId) {
+  try {
+    const eventRes = await axios.get(`${BASE_URL}/events/${eventId}.json`);
+
+    const rally = eventRes.data.rallies?.find((r) => r.isMain);
+    if (!rally || !rally.itineraryId) return [];
+
+    const itineraryRes = await axios.get(
+      `${BASE_URL}/events/${eventId}/itineraries/${rally.itineraryId}.json`,
+    );
+
+    const legs = itineraryRes.data.itineraryLegs;
+
+    const stages = [];
+
+    for (const leg of legs || []) {
+      for (const section of leg.itinerarySections || []) {
+        for (const stage of section.stages || []) {
+          if (!competitiveStageTypes.includes(stage.stageType)) continue;
+
+          let utcTime = null;
+          let localTime = null;
+          let timezone = null;
+
+          if (section.controls) {
+            const control = section.controls.find(
+              (c) => c.type === "StageStart" && c.code === stage.code,
+            );
+
+            if (control) {
+              // ✅ UTC (force Z to make it explicit)
+              if (control.firstCarDueDateTime) {
+                utcTime = control.firstCarDueDateTime + "Z";
+              }
+
+              // ✅ Local + timezone
+              if (control.firstCarDueDateTimeLocal) {
+                localTime = control.firstCarDueDateTimeLocal;
+
+                // Extract timezone (e.g., +01:00)
+                const match =
+                  control.firstCarDueDateTimeLocal.match(/([+-]\d{2}:\d{2})$/);
+
+                timezone = match ? `UTC${match[1]}` : null;
+              }
+            }
+          }
+
+          stages.push({
+            type: "stage",
+            external_id: stage.stageId,
+            name: stage.name,
+            stage_number: stage.number,
+            distance: stage.distance,
+
+            // 👇 IMPORTANT
+            start_time: utcTime, // goes to start_time_utc
+            start_time_local: localTime,
+            event_timezone: timezone,
+
+            order: stage.number,
+          });
+        }
+      }
+    }
+
+    return stages;
+  } catch (err) {
+    console.log(`Failed to fetch stages for event ${eventId}`);
+    return [];
+  }
+}
+
+/* ---------------------------------- */
+/* MAIN FETCH                         */
+/* ---------------------------------- */
+
 async function fetch() {
   const currentYear = new Date().getFullYear();
 
@@ -16,9 +97,7 @@ async function fetch() {
     timeout: 15000,
   });
 
-  const seasons = seasonsRes.data;
-
-  const season = seasons.find(
+  const season = seasonsRes.data.find(
     (s) => s.year === currentYear && s.name === "World Rally Championship",
   );
 
@@ -39,89 +118,18 @@ async function fetch() {
   for (const round of rounds) {
     const event = round.event;
 
-    const externalEventId = event.eventId;
+    const stages = await fetchStages(event.eventId);
 
-    const eventObj = {
-      external_id: externalEventId,
+    events.push({
+      external_id: event.eventId,
       name: event.name,
       location: event.location,
       country: event.country?.name || null,
       start_date: event.startDate,
       end_date: event.finishDate,
       round: round.order,
-      units: [],
-    };
-
-    try {
-      const eventRes = await axios.get(
-        `${BASE_URL}/events/${externalEventId}.json`,
-      );
-
-      const rally = eventRes.data.rallies.find((r) => r.isMain);
-
-      if (!rally) {
-        events.push(eventObj);
-        continue;
-      }
-
-      const itineraryId = rally.itineraryId;
-
-      const itineraryRes = await axios.get(
-        `${BASE_URL}/events/${externalEventId}/itineraries/${itineraryId}.json`,
-      );
-
-      const legs = itineraryRes.data.itineraryLegs;
-
-      if (!legs || legs.length === 0) {
-        events.push(eventObj);
-        continue;
-      }
-
-      for (const leg of legs) {
-        for (const section of leg.itinerarySections || []) {
-          for (const stage of section.stages || []) {
-            if (!competitiveStageTypes.includes(stage.stageType)) continue;
-
-            let startTimeUtc = null;
-
-            if (section.controls) {
-              const startControl = section.controls.find(
-                (c) => c.type === "StageStart" && c.code === stage.code,
-              );
-
-              if (startControl) {
-                startTimeUtc = startControl.firstCarDueDateTime;
-              }
-            }
-
-            eventObj.units.push({
-              type: "stage",
-              external_id: stage.stageId,
-              name: stage.name,
-              stage_number: stage.number,
-              distance: stage.distance,
-              start_time: startTimeUtc,
-              order: stage.number,
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.log(
-        `Stages not published yet for event ${event.name}. Attempting scraper...`,
-      );
-
-      const scraped = await scrapeItinerary(event.name, currentYear);
-
-      if (scraped) {
-        console.log(
-          `Scraped itinerary for ${event.name} (Version ${scraped.version})`,
-        );
-        console.log(scraped.stages);
-      }
-    }
-
-    events.push(eventObj);
+      units: stages,
+    });
   }
 
   return {

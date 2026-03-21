@@ -1,3 +1,4 @@
+require("../../src/config/env");
 const pool = require("../../db/pool");
 
 async function ensureSeries(shortName, name) {
@@ -75,17 +76,37 @@ async function insertUnit(eventId, unit) {
   if (unit.type === "stage") {
     await pool.query(
       `
-      INSERT INTO stages
-      (event_id, external_stage_id, stage_name, stage_number, start_time_utc, distance_km, stage_order)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT (event_id, external_stage_id) DO NOTHING
-      `,
+    INSERT INTO stages
+    (
+      event_id,
+      external_stage_id,
+      stage_name,
+      stage_number,
+      start_time_utc,
+      start_time_local,
+      event_timezone,
+      distance_km,
+      stage_order
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    ON CONFLICT (event_id, external_stage_id)
+    DO UPDATE SET
+      stage_name = EXCLUDED.stage_name,
+      stage_number = EXCLUDED.stage_number,
+      start_time_utc = EXCLUDED.start_time_utc,
+      start_time_local = EXCLUDED.start_time_local,
+      event_timezone = EXCLUDED.event_timezone,
+      distance_km = EXCLUDED.distance_km,
+      stage_order = EXCLUDED.stage_order
+    `,
       [
         eventId,
         unit.external_id,
         unit.name,
         unit.stage_number,
-        unit.start_time,
+        unit.start_time, // UTC
+        unit.start_time_local, // NEW
+        unit.event_timezone, // NEW
         unit.distance,
         unit.order,
       ],

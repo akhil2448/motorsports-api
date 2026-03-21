@@ -1,3 +1,4 @@
+require("../src/config/env");
 const {
   ingestLatestPdfStages,
 } = require("../src/services/wrc/wrcStageService");

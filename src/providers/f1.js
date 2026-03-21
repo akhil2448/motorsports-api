@@ -1,3 +1,4 @@
+require("../../src/config/env");
 const axios = require("axios");
 
 const BASE_URL = "https://api.openf1.org/v1";

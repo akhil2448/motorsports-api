@@ -1,3 +1,4 @@
+require("../src/config/env");
 const { fetchLatestPdf } = require("../src/services/wrc/wrcPdfService");
 
 async function run() {

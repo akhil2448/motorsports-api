@@ -1,3 +1,4 @@
+require("../src/config/env");
 const axios = require("axios");
 const pool = require("../db/pool");
 

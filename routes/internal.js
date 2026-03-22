@@ -6,21 +6,21 @@ const {
 } = require("../src/services/wrc/wrcStageService");
 
 router.get("/wrc-pdf", async (req, res) => {
-  // 🔐 Security check
   if (req.query.key !== process.env.CRON_SECRET) {
     return res.status(403).json({ error: "unauthorized" });
   }
 
-  try {
-    console.log("🌐 External cron triggered WRC ingestion");
+  console.log("🌐 External cron triggered WRC ingestion");
 
-    await ingestLatestPdfStages();
+  // ✅ Run in background (DON'T await)
+  ingestLatestPdfStages()
+    .then(() => console.log("✅ Background ingestion completed"))
+    .catch((err) =>
+      console.error("❌ Background ingestion failed:", err.message),
+    );
 
-    res.json({ status: "success" });
-  } catch (err) {
-    console.error("❌ Cron failed:", err.message);
-    res.status(500).json({ error: "cron failed" });
-  }
+  // ✅ Respond immediately (< 1 second)
+  res.json({ status: "triggered" });
 });
 
 module.exports = router;

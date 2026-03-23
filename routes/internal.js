@@ -5,22 +5,49 @@ const {
   ingestLatestPdfStages,
 } = require("../src/services/wrc/wrcStageService");
 
-router.get("/wrc-pdf", async (req, res) => {
-  if (req.query.key !== process.env.CRON_SECRET) {
+const {
+  updateUpcomingEvents,
+} = require("../src/providers/indycar/cron/updateUpcomingEvents");
+
+/**
+ * 🔒 Middleware for cron auth
+ */
+function verifyCron(req, res, next) {
+  const cronSecret = req.headers["x-cron-secret"];
+
+  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
     return res.status(403).json({ error: "unauthorized" });
   }
 
-  console.log("🌐 External cron triggered WRC ingestion");
+  next();
+}
 
-  // ✅ Run in background (DON'T await)
+/**
+ * WRC PDF ingestion (background)
+ */
+router.get("/wrc-pdf", verifyCron, async (req, res) => {
+  console.log("🌐 WRC cron triggered");
+
   ingestLatestPdfStages()
-    .then(() => console.log("✅ Background ingestion completed"))
-    .catch((err) =>
-      console.error("❌ Background ingestion failed:", err.message),
-    );
+    .then(() => console.log("✅ WRC ingestion completed"))
+    .catch((err) => console.error("❌ WRC ingestion failed:", err.message));
 
-  // ✅ Respond immediately (< 1 second)
-  res.json({ status: "triggered" });
+  res.json({ status: "WRC triggered" });
+});
+
+/**
+ * IndyCar schedule update
+ */
+router.get("/indycar-update", verifyCron, async (req, res) => {
+  console.log("🌐 IndyCar cron triggered");
+
+  try {
+    await updateUpcomingEvents();
+    res.json({ status: "IndyCar completed" });
+  } catch (err) {
+    console.error("❌ IndyCar cron failed:", err);
+    res.status(500).json({ error: "IndyCar cron failed" });
+  }
 });
 
 module.exports = router;

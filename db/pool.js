@@ -8,6 +8,8 @@ const pool = new Pool({
       : false,
 });
 
+console.log("Connected DB:", process.env.DATABASE_URL);
+
 pool.on("error", (err) => {
   console.error("Unexpected DB error", err);
   process.exit(1);

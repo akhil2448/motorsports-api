@@ -13,6 +13,10 @@ const {
   updateDtmSessions,
 } = require("../src/providers/dtm/cron/updateDtmSessions");
 
+const {
+  updateGTWCSessions,
+} = require("../src/providers/gtwc/cron/updateGTWCSessions"); // ✅ NEW
+
 /**
  * 🔒 Middleware for cron auth
  */
@@ -66,6 +70,21 @@ router.get("/dtm-update", verifyCron, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "DTM cron failed" });
+  }
+});
+
+/**
+ * GTWC schedule update (NEW)
+ */
+router.get("/gtwc-update", verifyCron, async (req, res) => {
+  console.log("🌐 GTWC cron triggered");
+
+  try {
+    await updateGTWCSessions();
+    res.json({ status: "GTWC completed" });
+  } catch (err) {
+    console.error("❌ GTWC cron failed:", err);
+    res.status(500).json({ error: "GTWC cron failed" });
   }
 });
 

@@ -1,4 +1,8 @@
 const { Pool } = require("pg");
+require("dotenv").config({
+  path:
+    process.env.NODE_ENV === "production" ? ".env.production" : ".env.local",
+});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -8,11 +12,10 @@ const pool = new Pool({
       : false,
 });
 
-console.log("Connected DB:", process.env.DATABASE_URL);
-
-pool.on("error", (err) => {
-  console.error("Unexpected DB error", err);
-  process.exit(1);
-});
+// ✅ ADD THIS HERE
+console.log(
+  "Using DB:",
+  process.env.DATABASE_URL.includes("localhost") ? "LOCAL" : "NEON",
+);
 
 module.exports = pool;

@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
 const pool = require("../../../db/pool");
+const { randomUUID } = require("crypto");
 
 const { parseWrcPdf } = require("./wrcPdfParser");
 const { convertStageToUTC } = require("../../../utils/time");
@@ -12,12 +13,39 @@ const { getPdfHash } = require("../../../utils/pdf-version");
 const { findPdfUrl } = require("./wrcPdfService");
 
 /* ---------------------------------- */
+/* NOTIFICATION HELPER                */
+/* ---------------------------------- */
+
+async function createNotification(payload) {
+  const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
+
+  const query = `
+    INSERT INTO notifications (
+      id, series_id, event_id, type, title, message, data, dedupe_key
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    ON CONFLICT (dedupe_key) DO NOTHING
+  `;
+
+  await pool.query(query, [
+    randomUUID(),
+    seriesId,
+    eventId,
+    type,
+    title,
+    message,
+    data,
+    dedupeKey,
+  ]);
+}
+
+/* ---------------------------------- */
 /* GET UPCOMING EVENT                 */
 /* ---------------------------------- */
 
 async function getUpcomingEvent() {
   const res = await pool.query(`
-    SELECT id, event_name, slug, start_date, country, pdf_hash, external_event_id
+    SELECT id, event_name, slug, start_date, country, pdf_hash, external_event_id, series_id
     FROM events
     WHERE series_id = (SELECT id FROM series WHERE short_name = 'WRC')
     AND start_date >= NOW()
@@ -168,6 +196,28 @@ async function ingestLatestPdfStages() {
 
     console.log("✅ Transaction committed");
     console.log("Stages inserted successfully");
+
+    // =========================
+    // 🔔 CREATE NOTIFICATION
+    // =========================
+    await createNotification({
+      seriesId: event.series_id,
+      eventId: event.id,
+      type: "event_updated",
+
+      title: "WRC Schedule Updated",
+      message: `${event.event_name} stages have been updated`,
+
+      data: {
+        old_hash: event.pdf_hash,
+        new_hash: pdfHash,
+        stages_count: stages.length,
+      },
+
+      dedupeKey: `wrc_event_${event.id}_hash_${pdfHash}`,
+    });
+
+    console.log(`Notification created for ${event.event_name}`);
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error("❌ Error:", err.message);

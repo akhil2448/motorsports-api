@@ -1,7 +1,34 @@
 const db = require("../../../../db/pool");
 const axios = require("axios");
+const { randomUUID } = require("crypto");
 
 const BASE_API = "https://api.dtm.com/data";
+
+/**
+ * 🔔 Notification helper
+ */
+async function createNotification(payload) {
+  const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
+
+  const query = `
+    INSERT INTO notifications (
+      id, series_id, event_id, type, title, message, data, dedupe_key
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    ON CONFLICT (dedupe_key) DO NOTHING
+  `;
+
+  await db.query(query, [
+    randomUUID(),
+    seriesId,
+    eventId,
+    type,
+    title,
+    message,
+    data,
+    dedupeKey,
+  ]);
+}
 
 /**
  * Normalize session type
@@ -21,7 +48,7 @@ function normalizeSessionType(label) {
  */
 async function getUpcomingEvents() {
   const query = `
-    SELECT id, slug, start_date
+    SELECT id, slug, start_date, series_id
     FROM events
     WHERE series_id = 5
       AND start_date IS NOT NULL
@@ -49,9 +76,7 @@ async function sessionsExist(eventId) {
  */
 async function fetchEventDetails(slug) {
   const url = `${BASE_API}?query=eventDetails&slug=${slug}&lang=en`;
-
   const { data } = await axios.get(url);
-
   return data.events?.[0] || null;
 }
 
@@ -90,6 +115,8 @@ async function insertSessions(eventId, slug, timetable) {
       ],
     );
   }
+
+  return dtmSessions.length; // 👈 needed for notification
 }
 
 /**
@@ -106,11 +133,11 @@ async function updateDtmSessions() {
   }
 
   for (const event of events) {
-    const { id, slug } = event;
+    const { id, slug, series_id } = event;
 
     console.log(`\nProcessing: ${slug}`);
 
-    // 👉 Skip if already inserted
+    // 👉 Check if already exists
     const exists = await sessionsExist(id);
     if (exists) {
       console.log("→ Sessions already exist, skipping");
@@ -118,7 +145,6 @@ async function updateDtmSessions() {
     }
 
     const details = await fetchEventDetails(slug);
-
     if (!details) continue;
 
     const timetable = details.timetable || [];
@@ -130,9 +156,29 @@ async function updateDtmSessions() {
 
     console.log("→ Timetable available, inserting sessions");
 
-    await insertSessions(id, slug, timetable);
+    const insertedCount = await insertSessions(id, slug, timetable);
 
     console.log("→ Sessions inserted");
+
+    // =========================
+    // 🔔 CREATE NOTIFICATION
+    // =========================
+    await createNotification({
+      seriesId: series_id,
+      eventId: id,
+      type: "schedule_released",
+
+      title: "DTM Schedule Released",
+      message: `${slug} full schedule is now available`,
+
+      data: {
+        sessions_count: insertedCount,
+      },
+
+      dedupeKey: `dtm_event_${id}_schedule_released`,
+    });
+
+    console.log("🔔 Notification created (schedule released)");
   }
 
   console.log("\n✅ DTM cron completed");

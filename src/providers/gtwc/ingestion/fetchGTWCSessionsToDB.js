@@ -1,5 +1,29 @@
 const { fetchGTWCSessions } = require("../fetchGTWCSessions");
 const db = require("../../../../db/pool");
+const { randomUUID } = require("crypto");
+
+async function createNotification(payload) {
+  const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
+
+  const query = `
+    INSERT INTO notifications (
+      id, series_id, event_id, type, title, message, data, dedupe_key
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    ON CONFLICT (dedupe_key) DO NOTHING
+  `;
+
+  await db.query(query, [
+    randomUUID(),
+    seriesId,
+    eventId,
+    type,
+    title,
+    message,
+    data,
+    dedupeKey,
+  ]);
+}
 
 async function upsertGTWCSessions(event) {
   try {
@@ -12,13 +36,14 @@ async function upsertGTWCSessions(event) {
 
     // 🔍 Get existing hash
     const res = await db.query(
-      `SELECT id, pdf_hash FROM events WHERE id = $1`,
+      `SELECT id, pdf_hash, series_id FROM events WHERE id = $1`,
       [event.id],
     );
 
     if (!res.rows.length) return;
 
     const existingHash = res.rows[0].pdf_hash;
+    const seriesId = res.rows[0].series_id;
 
     // ✅ Skip if no change
     if (existingHash === hash) {
@@ -71,6 +96,28 @@ async function upsertGTWCSessions(event) {
     ]);
 
     console.log(`Updated ${sessions.length} sessions`);
+
+    // =========================
+    // 🔔 CREATE NOTIFICATION
+    // =========================
+    await createNotification({
+      seriesId,
+      eventId: event.id,
+      type: "event_updated",
+
+      title: "GTWC Schedule Updated",
+      message: `${event.event_name} schedule has been updated`,
+
+      data: {
+        old_hash: existingHash,
+        new_hash: hash,
+        sessions_count: sessions.length,
+      },
+
+      dedupeKey: `gtwc_event_${event.id}_hash_${hash}`,
+    });
+
+    console.log(`Notification created for ${event.event_name}`);
   } catch (err) {
     console.error("Session ingestion error:", err.message);
   }

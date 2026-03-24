@@ -1,6 +1,33 @@
 const db = require("../../../../db/pool");
 const { fetchIndycarEventDetails } = require("../fetchEventDetails");
 const { DateTime } = require("luxon");
+const { randomUUID } = require("crypto");
+
+/**
+ * 🔔 Notification helper
+ */
+async function createNotification(payload) {
+  const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
+
+  const query = `
+    INSERT INTO notifications (
+      id, series_id, event_id, type, title, message, data, dedupe_key
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    ON CONFLICT (dedupe_key) DO NOTHING
+  `;
+
+  await db.query(query, [
+    randomUUID(),
+    seriesId,
+    eventId,
+    type,
+    title,
+    message,
+    data,
+    dedupeKey,
+  ]);
+}
 
 /**
  * Convert ET → UTC
@@ -10,7 +37,6 @@ function convertToUTC(dayStr, timeStr, year) {
     if (!timeStr) return null;
 
     const cleanTime = timeStr.replace(" ET", "").trim();
-
     const dateTimeStr = `${dayStr} ${year} ${cleanTime}`;
 
     const dt = DateTime.fromFormat(dateTimeStr, "EEEE, MMM d yyyy h:mma", {
@@ -52,7 +78,7 @@ function parseDate(dayStr, year) {
  */
 async function getUpcomingEvents() {
   const query = `
-    SELECT id, slug, end_date
+    SELECT id, slug, end_date, series_id
     FROM events
     WHERE series_id = 4
       AND start_date IS NULL
@@ -122,20 +148,28 @@ async function updateUpcomingEvents() {
   }
 
   for (const event of events) {
-    const { id, slug, end_date } = event;
+    const { id, slug, end_date, series_id } = event;
 
     console.log(`\nProcessing: ${slug}`);
 
     const url = `https://www.indycar.com/Schedule/2026/${slug}`;
-
     const details = await fetchIndycarEventDetails(url);
-
     const schedule = details.schedule;
 
     if (!schedule || schedule.length <= 1) {
       console.log("→ Still no full schedule");
       continue;
     }
+
+    // =========================
+    // 🔍 CHECK EXISTING SESSIONS
+    // =========================
+    const existingRes = await db.query(
+      `SELECT COUNT(*) FROM sessions WHERE event_id = $1`,
+      [id],
+    );
+
+    const existingCount = parseInt(existingRes.rows[0].count, 10);
 
     // 👉 Update start_date
     const firstDate = parseDate(schedule[0].day, "2026");
@@ -155,6 +189,28 @@ async function updateUpcomingEvents() {
     await insertSessions(id, slug, schedule, "2026");
 
     console.log("→ sessions inserted");
+
+    // =========================
+    // 🔔 CREATE NOTIFICATION (ONLY ONCE)
+    // =========================
+    if (existingCount === 0) {
+      await createNotification({
+        seriesId: series_id,
+        eventId: id,
+        type: "schedule_released",
+
+        title: "IndyCar Schedule Released",
+        message: `${slug} full schedule is now available`,
+
+        data: {
+          sessions_count: schedule.length,
+        },
+
+        dedupeKey: `indycar_event_${id}_schedule_released`,
+      });
+
+      console.log("🔔 Notification created (schedule released)");
+    }
   }
 
   console.log("\n✅ Upcoming events update completed");

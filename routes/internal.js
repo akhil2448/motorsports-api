@@ -9,6 +9,10 @@ const {
   updateUpcomingEvents,
 } = require("../src/providers/indycar/cron/updateUpcomingEvents");
 
+const {
+  updateDtmSessions,
+} = require("../src/providers/dtm/cron/updateDtmSessions");
+
 /**
  * 🔒 Middleware for cron auth
  */
@@ -47,6 +51,21 @@ router.get("/indycar-update", verifyCron, async (req, res) => {
   } catch (err) {
     console.error("❌ IndyCar cron failed:", err);
     res.status(500).json({ error: "IndyCar cron failed" });
+  }
+});
+
+/**
+ * DTM schedule update
+ */
+router.get("/dtm-update", verifyCron, async (req, res) => {
+  console.log("🌐 DTM cron triggered");
+
+  try {
+    await updateDtmSessions();
+    res.json({ status: "DTM completed" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "DTM cron failed" });
   }
 });
 

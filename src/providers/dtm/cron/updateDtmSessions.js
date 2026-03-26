@@ -48,7 +48,7 @@ function normalizeSessionType(label) {
  */
 async function getUpcomingEvents() {
   const query = `
-    SELECT id, slug, start_date, series_id
+    SELECT id, slug, event_name, start_date, series_id
     FROM events
     WHERE series_id = 5
       AND start_date IS NOT NULL
@@ -116,7 +116,7 @@ async function insertSessions(eventId, slug, timetable) {
     );
   }
 
-  return dtmSessions.length; // 👈 needed for notification
+  return dtmSessions.length;
 }
 
 /**
@@ -135,9 +135,9 @@ async function updateDtmSessions() {
   for (const event of events) {
     const { id, slug, series_id } = event;
 
-    console.log(`\nProcessing: ${slug}`);
+    console.log(`\nProcessing: ${event.event_name}`);
 
-    // 👉 Check if already exists
+    // 👉 Skip if already inserted
     const exists = await sessionsExist(id);
     if (exists) {
       console.log("→ Sessions already exist, skipping");
@@ -160,6 +160,12 @@ async function updateDtmSessions() {
 
     console.log("→ Sessions inserted");
 
+    // ⚠️ Guard: no notification if nothing inserted
+    if (insertedCount === 0) {
+      console.log("→ No DTM sessions found, skipping notification");
+      continue;
+    }
+
     // =========================
     // 🔔 CREATE NOTIFICATION
     // =========================
@@ -169,13 +175,13 @@ async function updateDtmSessions() {
       type: "schedule_released",
 
       title: "DTM Schedule Released",
-      message: `${slug} full schedule is now available`,
+      message: `${event.event_name} full schedule is now available`,
 
       data: {
         sessions_count: insertedCount,
       },
 
-      dedupeKey: `dtm_event_${id}_schedule_released`,
+      dedupeKey: `dtm_event_${id}_schedule_released_v1`,
     });
 
     console.log("🔔 Notification created (schedule released)");

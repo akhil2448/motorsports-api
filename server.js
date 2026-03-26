@@ -10,6 +10,7 @@ const unitsRoutes = require("./routes/units");
 const scheduleRoutes = require("./routes/schedule");
 const errorHandler = require("./src/middleware/errorHandler");
 const internalRoutes = require("./routes/internal");
+const notificationsRoute = require("./routes/notifications");
 
 const app = express();
 
@@ -24,12 +25,17 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+app.get("/ping", (req, res) => {
+  res.status(200).end();
+});
+
 app.use("/events", eventsRoutes);
 app.use("/series", seriesRoutes);
 app.use("/calendar", calendarRoutes);
 app.use("/units", unitsRoutes);
 app.use("/schedule", scheduleRoutes);
 app.use("/internal", internalRoutes);
+app.use("/notifications", notificationsRoute);
 
 /* ✅ 404 HANDLER */
 app.use((req, res) => {

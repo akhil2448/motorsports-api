@@ -1,0 +1,238 @@
+/* CARD */
+.series-card {
+  position: relative;
+
+  background: linear-gradient(
+    135deg,
+    rgba(20, 20, 30, 0.9),
+    rgba(10, 10, 18, 0.9)
+  );
+
+  backdrop-filter: blur(10px);
+
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+
+  transition: all 0.2s ease;
+}
+
+.series-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.series-card:active {
+  transform: scale(0.98);
+}
+
+/* ACCENT BAR */
+.accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 16px 0 0 16px;
+}
+
+.accent.f1 {
+  background: #e10600;
+}
+.accent.motogp {
+  background: #00d1ff;
+}
+.accent.wrc {
+  background: #ff6b00;
+}
+.accent.indycar {
+  background: #ffffff;
+}
+.accent.gtwc {
+  background: #9b59ff;
+}
+.accent.dtm {
+  background: #ffd600;
+}
+
+/* HEADER */
+.series-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* LOGO */
+.logo-container {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.series-logo {
+  height: 26px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(1.4);
+}
+
+/* LOGO NORMALIZATION */
+.series-logo.f1 {
+  height: 22px;
+}
+.series-logo.motogp {
+  height: 24px;
+}
+.series-logo.wrc {
+  height: 26px;
+}
+.series-logo.gtwc {
+  height: 35px;
+}
+.series-logo.dtm {
+  height: 35px;
+}
+.series-logo.indycar {
+  height: 26px;
+}
+
+/* TEXT */
+.event-name {
+  font-size: 17px;
+  font-weight: 600;
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+.event-location {
+  font-size: 14px;
+  color: #aaa;
+}
+
+/* DATE */
+.date-container {
+  text-align: right;
+}
+
+.event-date-big {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.countdown {
+  font-size: 12px;
+  color: #888;
+}
+
+.countdown.ongoing {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.countdown.live {
+  color: #ff3b30;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 59, 48, 0.6);
+}
+
+/* LIVE INDICATOR */
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+  color: #ff3b30;
+  font-weight: 600;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #ff3b30;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+}
+
+/* FIXED CENTERED PULSE */
+.dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 8px;
+  height: 8px;
+
+  background: #ff3b30;
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+
+  animation: pulse 1.5s infinite;
+  opacity: 0.6;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.countdown.upcoming {
+  color: #34c759; /* iOS green */
+  font-weight: 600;
+}
+
+/* EXPANDED */
+.series-card.expanded {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* SESSIONS */
+.sessions {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  animation: fadeIn 0.25s ease;
+}
+
+.session {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+
+.session.live {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.session-time {
+  font-size: 12px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

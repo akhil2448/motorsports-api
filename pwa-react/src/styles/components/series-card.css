@@ -17,7 +17,10 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
 
-  transition: all 0.2s ease;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border 0.25s ease;
 }
 
 .series-card:hover {
@@ -26,7 +29,15 @@
 }
 
 .series-card:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+.series-card.expanded .calendar-events {
+  max-height: 2000px; /* big enough */
+  opacity: 1;
+
+  transform: translateY(0);
 }
 
 /* ACCENT BAR */
@@ -176,17 +187,21 @@
   transform: translate(-50%, -50%);
   transform-origin: center;
 
-  animation: pulse 1.5s infinite;
-  opacity: 0.6;
+  animation: pulse 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  opacity: 0.8;
 }
 
 @keyframes pulse {
   0% {
     transform: translate(-50%, -50%) scale(1);
-    opacity: 0.6;
+    opacity: 0.5;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0.15;
   }
   100% {
-    transform: translate(-50%, -50%) scale(2.5);
+    transform: translate(-50%, -50%) scale(2.8);
     opacity: 0;
   }
 }
@@ -235,4 +250,206 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* TOGGLE */
+.time-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.time-toggle button {
+  background: #1a1a22;
+  border: none;
+  color: #aaa;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.time-toggle button.active {
+  background: #ffffff;
+  color: #000;
+}
+
+/* EVENTS */
+.calendar-events {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-left: 8px;
+
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+
+  transform: translateY(-6px);
+
+  transition:
+    max-height 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease,
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.calendar-event {
+  /* margin-bottom: 10px; */
+  padding: 10px 0;
+  position: relative;
+}
+/* DIVIDER LINE BETWEEN EVENTS */
+.calendar-event:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.calendar-event-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e5e5e5;
+
+  padding: 8px 0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* LEFT SIDE STACK */
+.event-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-event-header:active {
+  opacity: 0.6;
+  transform: scale(0.98);
+}
+
+.calendar-sessions {
+  padding-left: 18px;
+
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+
+  transform: translateY(-4px);
+
+  transition:
+    max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease,
+    transform 0.35s ease;
+}
+
+.calendar-event.active .calendar-sessions {
+  max-height: 800px;
+  opacity: 1;
+
+  transform: translateY(0);
+}
+
+/* EVENT ROW LAYOUT */
+.event-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* EVENT TITLE */
+.event-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* DATE RANGE */
+.event-range {
+  font-size: 12px;
+  color: #888;
+}
+
+/* DAY GROUP */
+.session-day-group {
+  margin-top: 10px;
+}
+
+/* DAY HEADER */
+.session-day {
+  font-size: 15px; /* ↑ bigger than sessions */
+  font-weight: 600;
+  color: #e0e0e0;
+
+  margin-top: 25px;
+  margin-bottom: 6px;
+
+  padding-left: 6px;
+  letter-spacing: 0.3px;
+}
+
+/* DAY DIVIDER (SUBTLE) */
+.session-day::after {
+  content: "";
+  display: block;
+  margin-top: 8px;
+
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05); /* lighter than event divider */
+}
+
+/* SESSION ROW */
+.session {
+  display: flex;
+  justify-content: space-between;
+
+  font-size: 14px;
+  color: #bbb;
+
+  padding: 3px 0;
+  padding-left: 24px;
+}
+
+/* SESSION NAME */
+.session span:first-child {
+  color: #ccc;
+  font-weight: 500;
+}
+
+/* SESSION TIME (LESS IMPORTANT) */
+.session span:last-child {
+  font-size: 12px;
+  color: #777;
+}
+
+/* LIVE SESSION (HIGH PRIORITY) */
+.session.live span:first-child {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.session.live span:last-child {
+  color: #ff3b30;
+}
+
+/* CHEVRON (iOS STYLE) */
+.chevron {
+  font-size: 18px;
+  color: #777;
+
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.25s ease;
+}
+
+/* ROTATE ON OPEN */
+.chevron.open {
+  transform: rotate(90deg);
+  color: #fff;
 }

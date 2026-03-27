@@ -5,11 +5,11 @@ const crypto = require("crypto");
 /**
  * Parse GMT → UTC Date (canonical)
  */
-function parseUTCDateTime(dateText, time) {
+function parseUTCDateTime(dateText, time, event) {
   const parts = dateText.split(",")[1].trim();
-  const currentYear = new Date().getFullYear();
+  const year = new Date(event.start_date).getFullYear();
 
-  return new Date(`${parts} ${currentYear} ${time} UTC`);
+  return new Date(`${parts} ${year} ${time} UTC`);
 }
 
 /**
@@ -19,7 +19,12 @@ function getOffsetMinutes(localTime, gmtTime) {
   const [lh, lm] = localTime.split(":").map(Number);
   const [gh, gm] = gmtTime.split(":").map(Number);
 
-  return lh * 60 + lm - (gh * 60 + gm);
+  let diff = lh * 60 + lm - (gh * 60 + gm);
+
+  if (diff > 720) diff -= 1440;
+  if (diff < -720) diff += 1440;
+
+  return diff;
 }
 
 /**
@@ -91,7 +96,7 @@ async function fetchGTWCSessions(event) {
         if (!normalized) return;
 
         // ✅ UTC (canonical)
-        const start_time = parseUTCDateTime(dateText, gmtTime);
+        const start_time = parseUTCDateTime(dateText, gmtTime, event);
 
         // ✅ Derive offset → local timestamptz
         const offsetMinutes = getOffsetMinutes(localTime, gmtTime);

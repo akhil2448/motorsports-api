@@ -45,7 +45,6 @@ export async function getUpcomingEvents() {
   return getNearestEventsPerSeries(transformed);
 }
 
-// ✅ FIXED ENDPOINT + SAFE PARSE
 export async function getEventSchedule(eventId) {
   const res = await fetch(`${API_BASE}/events/${eventId}/schedule`);
 
@@ -55,13 +54,14 @@ export async function getEventSchedule(eventId) {
 
   return data
     .map((item) => {
-      const start = item.start_time_utc || item.start_time_local;
-      if (!start) return null;
+      if (!item.start_time) return null;
 
       return {
-        name: item.session_name || item.stage_name || "Session",
-        start: new Date(start),
-        end: item.end_time_utc ? new Date(item.end_time_utc) : new Date(start),
+        name: item.name,
+        start: new Date(item.start_time),
+        end: item.end_time
+          ? new Date(item.end_time)
+          : new Date(item.start_time),
       };
     })
     .filter(Boolean)

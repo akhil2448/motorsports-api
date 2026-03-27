@@ -220,6 +220,21 @@
   margin-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 10px;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+
+  transition:
+    max-height 0.45s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.25s ease,
+    transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* open state */
+.sessions.open {
+  max-height: 500px; /* enough for content */
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .session {
@@ -450,4 +465,9 @@
 .chevron.open {
   transform: rotate(90deg);
   color: #fff;
+}
+
+/* wrapper */
+.sessions-wrapper {
+  overflow: hidden;
 }

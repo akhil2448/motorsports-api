@@ -1,6 +1,6 @@
 {
-  "name": "Motorsports",
-  "short_name": "Motorsports",
+  "name": "LightsOut",
+  "short_name": "LightsOut",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#000000",

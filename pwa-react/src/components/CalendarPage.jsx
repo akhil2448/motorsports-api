@@ -4,7 +4,7 @@ import CalendarSeriesCard from "./CalendarSeriesCard";
 export default function CalendarPage() {
   // ✅ Persist selected series (used to initialize UI)
   const [expandedSeries, setExpandedSeries] = useState(() => {
-    return localStorage.getItem("selectedSeries") || null;
+    return sessionStorage.getItem("selectedSeries") || null;
   });
 
   const [useLocalTime, setUseLocalTime] = useState(true);
@@ -15,7 +15,7 @@ export default function CalendarPage() {
       if (prev === series) return prev;
 
       // ✅ if different → switch
-      localStorage.setItem("selectedSeries", series);
+      sessionStorage.setItem("selectedSeries", series);
       return series;
     });
   };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 import f1Logo from "../assets/logos/f1.svg";
 import motogpLogo from "../assets/logos/motogp.svg";
@@ -43,6 +43,28 @@ export default function CalendarSeriesCard({
   const [activeEvent, setActiveEvent] = useState(null);
   const now = new Date();
 
+  const cardRef = useRef(null);
+
+  // ✅ AUTO SCROLL WHEN EXPANDED
+  useEffect(() => {
+    if (expanded && cardRef.current) {
+      const yOffset = -80; // adjust if header height changes
+
+      const y =
+        cardRef.current.getBoundingClientRect().top +
+        window.pageYOffset +
+        yOffset;
+
+      // small delay → feels more natural
+      setTimeout(() => {
+        window.scrollTo({
+          top: y,
+          behavior: "smooth",
+        });
+      }, 80);
+    }
+  }, [expanded]);
+
   const getCountdown = (target) => {
     const diff = target - now;
     if (diff <= 0) return "Now";
@@ -55,6 +77,7 @@ export default function CalendarSeriesCard({
 
   return (
     <div
+      ref={cardRef}
       className={`series-card ${expanded ? "expanded" : ""}`}
       onClick={onClick}>
       <div className={`accent ${data.series.toLowerCase()}`} />

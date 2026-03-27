@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import f1Logo from "../assets/logos/f1.svg";
 import motogpLogo from "../assets/logos/motogp.svg";
@@ -24,10 +24,11 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   // ✅ fallback state for Events page
   const [internalExpanded, setInternalExpanded] = useState(false);
 
-  // ✅ decide which mode to use
   const isExpanded = expanded !== undefined ? expanded : internalExpanded;
 
   const [now, setNow] = useState(new Date());
+
+  const cardRef = useRef(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -35,6 +36,25 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // ✅ AUTO SCROLL (same as calendar)
+  useEffect(() => {
+    if (isExpanded && cardRef.current) {
+      const yOffset = -80;
+
+      const y =
+        cardRef.current.getBoundingClientRect().top +
+        window.pageYOffset +
+        yOffset;
+
+      setTimeout(() => {
+        window.scrollTo({
+          top: y,
+          behavior: "smooth",
+        });
+      }, 80);
+    }
+  }, [isExpanded]);
 
   const getCountdown = (target) => {
     const diff = target - now;
@@ -69,13 +89,12 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
   return (
     <div
+      ref={cardRef}
       className={`series-card ${isExpanded ? "expanded" : ""}`}
       onClick={() => {
         if (onToggle) {
-          // ✅ Calendar (controlled)
           onToggle(series);
         } else {
-          // ✅ Events (uncontrolled)
           setInternalExpanded((prev) => !prev);
         }
       }}>
@@ -117,8 +136,9 @@ export default function SeriesCard({ event, expanded, onToggle }) {
       <div className="event-name">{eventName}</div>
       <div className="event-location">{location}</div>
 
-      {isExpanded && (
-        <div className="sessions">
+      {/* ✅ IMPORTANT: keep mounted for animation */}
+      <div className="sessions-wrapper">
+        <div className={`sessions ${isExpanded ? "open" : ""}`}>
           {sessions.map((s, idx) => {
             const isLive = now >= s.start && now <= s.end;
             const countdown = getCountdown(s.start);
@@ -141,7 +161,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
             );
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }

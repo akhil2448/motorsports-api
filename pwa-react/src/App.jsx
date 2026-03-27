@@ -18,16 +18,16 @@ import "./styles/components/page-header.css";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [activeTab, setActiveTab] = useState("events");
 
-  // Splash timer
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 4000);
+    }, 8300); // 👈 slightly BEFORE your current end
 
     return () => clearTimeout(timer);
   }, []);
+
+  const [activeTab, setActiveTab] = useState("events");
 
   // INIT FROM LOCALSTORAGE
   const [notifications, setNotifications] = useState(() => {
@@ -130,7 +130,7 @@ function App() {
 
   return (
     <>
-      {showSplash && <SplashScreen />}
+      <SplashScreen show={showSplash} />
 
       <div className="app-container">
         {/* HEADER */}

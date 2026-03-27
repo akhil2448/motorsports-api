@@ -16,134 +16,109 @@ import "./styles/components/series-card.css";
 import "./styles/components/notifications.css";
 import "./styles/components/page-header.css";
 
+import { getUpcomingEvents, getEventSchedule } from "./services/eventsService";
+
 function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 8300); // 👈 slightly BEFORE your current end
+    }, 300);
 
     return () => clearTimeout(timer);
   }, []);
 
   const [activeTab, setActiveTab] = useState("events");
 
-  // INIT FROM LOCALSTORAGE
+  // EVENTS STATE
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [eventsError, setEventsError] = useState(null);
+
+  useEffect(() => {
+    async function loadEvents() {
+      try {
+        setLoadingEvents(true);
+
+        const eventsData = await getUpcomingEvents();
+
+        // 🔥 fetch all schedules in parallel
+        const eventsWithSessions = await Promise.all(
+          eventsData.map(async (event) => {
+            try {
+              const sessions = await getEventSchedule(event.id);
+              return { ...event, sessions };
+              // eslint-disable-next-line no-unused-vars
+            } catch (err) {
+              console.error("schedule failed for", event.id);
+              return { ...event, sessions: [] };
+            }
+          }),
+        );
+
+        setEvents(eventsWithSessions);
+      } catch (err) {
+        console.error(err);
+        setEventsError(err.message);
+      } finally {
+        setLoadingEvents(false);
+      }
+    }
+
+    loadEvents();
+  }, []);
+
+  // ✅ TOGGLE + FETCH SESSIONS
+  const handleToggleEvent = (eventId) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, expanded: !e.expanded } : e)),
+    );
+  };
+
+  // NOTIFICATIONS
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem("notifications");
     return saved ? JSON.parse(saved) : mockNotifications;
   });
 
-  // PERSIST TO LOCALSTORAGE
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));
   }, [notifications]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const now = new Date();
-
-  const mockEvents = [
-    {
-      series: "F1",
-      eventName: "Australian Grand Prix",
-      location: "Melbourne",
-      startDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
-      endDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-      sessions: [
-        {
-          name: "Practice 1",
-          start: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 2.1 * 24 * 60 * 60 * 1000),
-        },
-        {
-          name: "Qualifying",
-          start: new Date(now.getTime() + 2.5 * 24 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 2.6 * 24 * 60 * 60 * 1000),
-        },
-      ],
-    },
-    {
-      series: "MotoGP",
-      eventName: "Qatar GP",
-      location: "Lusail",
-      startDate: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-      endDate: new Date(now.getTime() + 5 * 60 * 60 * 1000),
-      sessions: [
-        {
-          name: "Practice",
-          start: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-          end: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        },
-        {
-          name: "Qualifying",
-          start: new Date(now.getTime() - 1 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 1 * 60 * 60 * 1000),
-        },
-        {
-          name: "Race",
-          start: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 4 * 60 * 60 * 1000),
-        },
-      ],
-    },
-    {
-      series: "WRC",
-      eventName: "Rally Sweden",
-      location: "Umeå",
-      startDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-      endDate: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-      sessions: [
-        {
-          name: "Stage 1",
-          start: new Date(now.getTime() - 20 * 60 * 60 * 1000),
-          end: new Date(now.getTime() - 19 * 60 * 60 * 1000),
-        },
-        {
-          name: "Stage 2",
-          start: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 1 * 60 * 60 * 1000),
-        },
-      ],
-    },
-    {
-      series: "IndyCar",
-      eventName: "Long Beach GP",
-      location: "California",
-      startDate: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-      endDate: new Date(now.getTime() + 5 * 60 * 60 * 1000),
-      sessions: [
-        {
-          name: "Practice",
-          start: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-          end: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-        },
-        {
-          name: "Qualifying",
-          start: new Date(now.getTime() + 1 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-        },
-      ],
-    },
-  ];
-
   return (
     <>
       <SplashScreen show={showSplash} />
 
       <div className="app-container">
-        {/* HEADER */}
         <PageHeader title={activeTab.toUpperCase()} />
 
         {/* EVENTS TAB */}
-        {activeTab === "events" &&
-          mockEvents.map((event, i) => <SeriesCard key={i} event={event} />)}
+        {activeTab === "events" && (
+          <>
+            {loadingEvents && <div className="status">Loading events...</div>}
 
-        {/* CALENDAR TAB */}
+            {eventsError && (
+              <div className="status error">Failed to load events</div>
+            )}
+
+            {!loadingEvents &&
+              !eventsError &&
+              events.map((event) => (
+                <SeriesCard
+                  key={event.id}
+                  event={event}
+                  expanded={event.expanded}
+                  onToggle={() => handleToggleEvent(event.id)}
+                />
+              ))}
+          </>
+        )}
+
         {activeTab === "calendar" && <CalendarPage />}
 
-        {/* NOTIFICATIONS TAB */}
         {activeTab === "notifications" && (
           <NotificationsScreen
             notifications={notifications}
@@ -151,10 +126,8 @@ function App() {
           />
         )}
 
-        {/* PROFILE TAB */}
         {activeTab === "profile" && <Profile />}
 
-        {/* NAV */}
         <BottomNav
           activeTab={activeTab}
           setActiveTab={setActiveTab}

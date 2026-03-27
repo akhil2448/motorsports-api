@@ -8,12 +8,12 @@ import gtwcLogo from "../assets/logos/gtwc.svg";
 import dtmLogo from "../assets/logos/dtm.svg";
 
 const logoMap = {
-  F1: f1Logo,
-  MotoGP: motogpLogo,
-  WRC: wrcLogo,
-  IndyCar: indycarLogo,
-  GTWC: gtwcLogo,
-  DTM: dtmLogo,
+  f1: f1Logo,
+  motogp: motogpLogo,
+  wrc: wrcLogo,
+  indycar: indycarLogo,
+  gtwc: gtwcLogo,
+  dtm: dtmLogo,
 };
 
 export default function SeriesCard({ event, expanded, onToggle }) {
@@ -93,7 +93,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
       className={`series-card ${isExpanded ? "expanded" : ""}`}
       onClick={() => {
         if (onToggle) {
-          onToggle(series);
+          onToggle();
         } else {
           setInternalExpanded((prev) => !prev);
         }

@@ -6,6 +6,7 @@ import NotificationsScreen from "./components/Notifications";
 import SplashScreen from "./components/SplashScreen";
 import { mockNotifications } from "./mock/notifications";
 import Profile from "./components/Profile";
+import PageHeader from "./components/PageHeader";
 
 import "./styles/components/splash.css";
 import "./styles/base.css";
@@ -13,12 +14,13 @@ import "./styles/layout.css";
 import "./styles/components/bottom-nav.css";
 import "./styles/components/series-card.css";
 import "./styles/components/notifications.css";
+import "./styles/components/page-header.css";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState("events");
 
-  // ✅ Splash timer
+  // Splash timer
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
@@ -27,13 +29,13 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ✅ INIT FROM LOCALSTORAGE
+  // INIT FROM LOCALSTORAGE
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem("notifications");
     return saved ? JSON.parse(saved) : mockNotifications;
   });
 
-  // ✅ PERSIST TO LOCALSTORAGE
+  // PERSIST TO LOCALSTORAGE
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));
   }, [notifications]);
@@ -128,11 +130,11 @@ function App() {
 
   return (
     <>
-      {/* ✅ Splash overlays app */}
       {showSplash && <SplashScreen />}
 
       <div className="app-container">
-        <h1 style={{ paddingBottom: "20px" }}>{activeTab.toUpperCase()}</h1>
+        {/* HEADER */}
+        <PageHeader title={activeTab.toUpperCase()} />
 
         {/* EVENTS TAB */}
         {activeTab === "events" &&
@@ -149,13 +151,15 @@ function App() {
           />
         )}
 
+        {/* PROFILE TAB */}
+        {activeTab === "profile" && <Profile />}
+
+        {/* NAV */}
         <BottomNav
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           unreadCount={unreadCount}
         />
-
-        {activeTab === "profile" && <Profile />}
       </div>
     </>
   );

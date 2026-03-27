@@ -2,12 +2,23 @@ import { useState } from "react";
 import CalendarSeriesCard from "./CalendarSeriesCard";
 
 export default function CalendarPage() {
-  // ✅ Persist selected series
-  const [activeSeries, setActiveSeries] = useState(() => {
+  // ✅ Persist selected series (used to initialize UI)
+  const [expandedSeries, setExpandedSeries] = useState(() => {
     return localStorage.getItem("selectedSeries") || null;
   });
 
   const [useLocalTime, setUseLocalTime] = useState(true);
+
+  const handleToggle = (series) => {
+    setExpandedSeries((prev) => {
+      // ✅ if same → do nothing (stay open)
+      if (prev === series) return prev;
+
+      // ✅ if different → switch
+      localStorage.setItem("selectedSeries", series);
+      return series;
+    });
+  };
 
   const now = new Date();
 
@@ -135,19 +146,8 @@ export default function CalendarPage() {
         <CalendarSeriesCard
           key={seriesData.series}
           data={seriesData}
-          expanded={activeSeries === seriesData.series}
-          onClick={() => {
-            const newSeries =
-              activeSeries === seriesData.series ? null : seriesData.series;
-
-            setActiveSeries(newSeries);
-
-            if (newSeries) {
-              localStorage.setItem("selectedSeries", newSeries);
-            } else {
-              localStorage.removeItem("selectedSeries");
-            }
-          }}
+          expanded={expandedSeries === seriesData.series} // ✅ FIXED
+          onClick={() => handleToggle(seriesData.series)} // ✅ FIXED
           useLocalTime={useLocalTime}
         />
       ))}

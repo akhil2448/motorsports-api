@@ -16,11 +16,17 @@ const logoMap = {
   DTM: dtmLogo,
 };
 
-export default function SeriesCard({ event }) {
+export default function SeriesCard({ event, expanded, onToggle }) {
   const { series, eventName, location, startDate, endDate, sessions } = event;
 
   const logo = logoMap[series];
-  const [expanded, setExpanded] = useState(false);
+
+  // ✅ fallback state for Events page
+  const [internalExpanded, setInternalExpanded] = useState(false);
+
+  // ✅ decide which mode to use
+  const isExpanded = expanded !== undefined ? expanded : internalExpanded;
+
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -51,7 +57,6 @@ export default function SeriesCard({ event }) {
     day: "numeric",
   });
 
-  // 🔥 UPDATED STATUS LOGIC
   let eventStatus = "";
 
   if (isAnySessionLive) {
@@ -64,8 +69,16 @@ export default function SeriesCard({ event }) {
 
   return (
     <div
-      className={`series-card ${expanded ? "expanded" : ""}`}
-      onClick={() => setExpanded(!expanded)}>
+      className={`series-card ${isExpanded ? "expanded" : ""}`}
+      onClick={() => {
+        if (onToggle) {
+          // ✅ Calendar (controlled)
+          onToggle(series);
+        } else {
+          // ✅ Events (uncontrolled)
+          setInternalExpanded((prev) => !prev);
+        }
+      }}>
       {/* Accent */}
       <div className={`accent ${series.toLowerCase()}`} />
 
@@ -81,7 +94,6 @@ export default function SeriesCard({ event }) {
         <div className="date-container">
           <div className="event-date-big">{formattedDate}</div>
 
-          {/* 🔥 UPDATED COUNTDOWN BLOCK */}
           <div
             className={`countdown ${
               eventStatus === "LIVE"
@@ -105,7 +117,7 @@ export default function SeriesCard({ event }) {
       <div className="event-name">{eventName}</div>
       <div className="event-location">{location}</div>
 
-      {expanded && (
+      {isExpanded && (
         <div className="sessions">
           {sessions.map((s, idx) => {
             const isLive = now >= s.start && now <= s.end;

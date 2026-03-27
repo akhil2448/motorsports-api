@@ -1,0 +1,57 @@
+/* wheel-picker.css */
+
+.wheel-wrapper {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #111;
+}
+
+/* scroll container */
+.wheel-container {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-align: center;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.wheel-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* items */
+.wheel-item {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 16px;
+  color: #666;
+
+  scroll-snap-align: center;
+  transition: all 0.2s ease;
+}
+
+/* active item */
+.wheel-item.active {
+  color: #fff;
+  font-weight: 600;
+  transform: scale(1.1);
+}
+
+/* center highlight */
+.wheel-highlight {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  height: 40px;
+
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+
+  pointer-events: none;
+}

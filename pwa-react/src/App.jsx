@@ -1,20 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomNav from "./components/BottomNav";
 import SeriesCard from "./components/SeriesCard";
 import CalendarPage from "./components/CalendarPage";
+import NotificationsScreen from "./components/Notifications";
+import SplashScreen from "./components/SplashScreen";
+import { mockNotifications } from "./mock/notifications";
+import Profile from "./components/Profile";
 
+import "./styles/components/splash.css";
 import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components/bottom-nav.css";
 import "./styles/components/series-card.css";
+import "./styles/components/notifications.css";
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState("events");
+
+  // ✅ Splash timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ✅ INIT FROM LOCALSTORAGE
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem("notifications");
+    return saved ? JSON.parse(saved) : mockNotifications;
+  });
+
+  // ✅ PERSIST TO LOCALSTORAGE
+  useEffect(() => {
+    localStorage.setItem("notifications", JSON.stringify(notifications));
+  }, [notifications]);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const now = new Date();
 
   const mockEvents = [
-    // FUTURE EVENT
     {
       series: "F1",
       eventName: "Australian Grand Prix",
@@ -34,8 +62,6 @@ function App() {
         },
       ],
     },
-
-    // ONGOING EVENT
     {
       series: "MotoGP",
       eventName: "Qatar GP",
@@ -51,7 +77,7 @@ function App() {
         {
           name: "Qualifying",
           start: new Date(now.getTime() - 1 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 1 * 60 * 60 * 1000), // LIVE
+          end: new Date(now.getTime() + 1 * 60 * 60 * 1000),
         },
         {
           name: "Race",
@@ -60,8 +86,6 @@ function App() {
         },
       ],
     },
-
-    // WRC (stages)
     {
       series: "WRC",
       eventName: "Rally Sweden",
@@ -77,12 +101,10 @@ function App() {
         {
           name: "Stage 2",
           start: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-          end: new Date(now.getTime() + 1 * 60 * 60 * 1000), // LIVE
+          end: new Date(now.getTime() + 1 * 60 * 60 * 1000),
         },
       ],
     },
-
-    // UPCOMING (event started, no live session)
     {
       series: "IndyCar",
       eventName: "Long Beach GP",
@@ -105,23 +127,37 @@ function App() {
   ];
 
   return (
-    <div className="app-container">
-      <h1 style={{ paddingBottom: "20px" }}>{activeTab.toUpperCase()}</h1>
+    <>
+      {/* ✅ Splash overlays app */}
+      {showSplash && <SplashScreen />}
 
-      {/* EVENTS TAB */}
-      {activeTab === "events" &&
-        mockEvents.map((event, i) => <SeriesCard key={i} event={event} />)}
+      <div className="app-container">
+        <h1 style={{ paddingBottom: "20px" }}>{activeTab.toUpperCase()}</h1>
 
-      {/* CALENDAR TAB */}
-      {activeTab === "calendar" && <CalendarPage />}
+        {/* EVENTS TAB */}
+        {activeTab === "events" &&
+          mockEvents.map((event, i) => <SeriesCard key={i} event={event} />)}
 
-      {/* (placeholder for future) */}
-      {activeTab === "updates" && (
-        <div style={{ color: "#888" }}>No updates yet</div>
-      )}
+        {/* CALENDAR TAB */}
+        {activeTab === "calendar" && <CalendarPage />}
 
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-    </div>
+        {/* NOTIFICATIONS TAB */}
+        {activeTab === "notifications" && (
+          <NotificationsScreen
+            notifications={notifications}
+            setNotifications={setNotifications}
+          />
+        )}
+
+        <BottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          unreadCount={unreadCount}
+        />
+
+        {activeTab === "profile" && <Profile />}
+      </div>
+    </>
   );
 }
 

@@ -34,7 +34,10 @@ async function insertEvent(seriesId, event) {
     SET
       event_name = EXCLUDED.event_name,
       location = EXCLUDED.location,
-      country = EXCLUDED.country
+      country = EXCLUDED.country,
+      start_date = EXCLUDED.start_date,
+      end_date = EXCLUDED.end_date,
+      round_number = EXCLUDED.round_number
     RETURNING id
     `,
     [

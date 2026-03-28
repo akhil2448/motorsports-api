@@ -3,6 +3,10 @@ const axios = require("axios");
 
 const BASE_URL = "https://api.pulselive.motogp.com/motogp/v1";
 
+/* =========================
+   HELPERS
+========================= */
+
 function normalizeMotoGPName(name) {
   if (!name) return null;
 
@@ -32,6 +36,40 @@ function normalizeSessionName(name) {
   return name.trim();
 }
 
+// ✅ "+0200" → "UTC+02:00"
+function extractTimezone(offsetString) {
+  if (!offsetString) return "UTC+00:00";
+
+  const match = offsetString.match(/([+-]\d{2})(\d{2})$/);
+  if (!match) return "UTC+00:00";
+
+  return `UTC${match[1]}:${match[2]}`;
+}
+
+function parseOffsetMinutes(offsetString) {
+  const match = offsetString.match(/([+-]\d{2})(\d{2})$/);
+  if (!match) return 0;
+
+  const hours = parseInt(match[1], 10);
+  const mins = parseInt(match[2], 10);
+
+  return hours * 60 + (hours >= 0 ? mins : -mins);
+}
+
+// ✅ Convert UTC → local using offset
+function applyOffset(dateStr, offsetStr) {
+  if (!dateStr || !offsetStr) return null;
+
+  const utcDate = new Date(dateStr);
+  const offsetMinutes = parseOffsetMinutes(offsetStr);
+
+  return new Date(utcDate.getTime() + offsetMinutes * 60000);
+}
+
+/* =========================
+   MAIN FETCH
+========================= */
+
 async function fetch() {
   const currentYear = new Date().getFullYear();
 
@@ -47,15 +85,37 @@ async function fetch() {
   for (const event of raceEvents) {
     const sessions = (event.broadcasts || [])
       .filter((b) => b.type === "SESSION" && b.category?.acronym === "MGP")
-      .map((s) => ({
-        type: "session",
-        external_id: s.id,
-        name: normalizeSessionName(s.name),
-        session_type: s.kind,
-        start_time: s.date_start,
-        end_time: s.date_end,
-        order: s.progressive,
-      }));
+      .map((s) => {
+        const start = s.date_start;
+        const endRaw = s.date_end;
+
+        // ✅ FIX 1: if same → null
+        const end = start === endRaw ? null : endRaw;
+
+        // extract "+0200"
+        const offsetMatch = start?.match(/([+-]\d{4})$/);
+        const offset = offsetMatch ? offsetMatch[1] : "+0000";
+
+        return {
+          type: "session",
+          external_id: s.id,
+          name: normalizeSessionName(s.name),
+          session_type: s.kind,
+
+          // ✅ UTC (auto handled by JS)
+          start_time: start,
+          end_time: end,
+
+          // ✅ LOCAL (computed)
+          start_time_local: applyOffset(start, offset),
+          end_time_local: end ? applyOffset(end, offset) : null,
+
+          // ✅ TIMEZONE
+          event_timezone: extractTimezone(offset),
+
+          order: s.progressive,
+        };
+      });
 
     events.push({
       external_id: event.id,

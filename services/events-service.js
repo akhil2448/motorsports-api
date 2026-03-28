@@ -29,7 +29,9 @@ async function getUpcomingEvents() {
       s.short_name AS series
     FROM events e
     JOIN series s ON e.series_id = s.id
-    WHERE e.start_date >= CURRENT_DATE
+    WHERE 
+      e.start_date >= CURRENT_DATE
+      OR (e.start_date <= CURRENT_DATE AND e.end_date >= CURRENT_DATE)
     ORDER BY e.start_date
     LIMIT 20
   `);

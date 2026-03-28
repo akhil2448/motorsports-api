@@ -17,17 +17,21 @@ const logoMap = {
 };
 
 export default function SeriesCard({ event, expanded, onToggle }) {
-  const { series, eventName, location, startDate, endDate, sessions } = event;
+  const {
+    series,
+    eventName,
+    location,
+    startDate,
+    endDate,
+    sessions = [],
+  } = event;
 
   const logo = logoMap[series];
 
-  // ✅ fallback state for Events page
   const [internalExpanded, setInternalExpanded] = useState(false);
-
   const isExpanded = expanded !== undefined ? expanded : internalExpanded;
 
   const [now, setNow] = useState(new Date());
-
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -37,21 +41,16 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ AUTO SCROLL (same as calendar)
   useEffect(() => {
     if (isExpanded && cardRef.current) {
       const yOffset = -80;
-
       const y =
         cardRef.current.getBoundingClientRect().top +
         window.pageYOffset +
         yOffset;
 
       setTimeout(() => {
-        window.scrollTo({
-          top: y,
-          behavior: "smooth",
-        });
+        window.scrollTo({ top: y, behavior: "smooth" });
       }, 80);
     }
   }, [isExpanded]);
@@ -68,46 +67,74 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return `${hours}h ${mins}m`;
   };
 
-  const isOngoing = now >= startDate && now <= endDate;
+  // ✅ FIXED STATUS LOGIC
+  const isEventOngoing = now >= startDate && now <= endDate;
 
-  const isAnySessionLive = sessions.some((s) => now >= s.start && now <= s.end);
+  const isAnySessionLive =
+    sessions.length > 0 && sessions.some((s) => now >= s.start && now <= s.end);
 
-  const formattedDate = startDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const nextSession =
+    sessions.length > 0 ? sessions.find((s) => s.start > now) : null;
 
   let eventStatus = "";
 
   if (isAnySessionLive) {
     eventStatus = "LIVE";
-  } else if (isOngoing) {
-    eventStatus = "UPCOMING";
+  } else if (isEventOngoing) {
+    eventStatus = "UPCOMING"; // ✅ priority fix
+  } else if (nextSession) {
+    eventStatus = getCountdown(nextSession.start);
+  } else if (sessions.length > 0) {
+    eventStatus = "DONE";
   } else {
     eventStatus = getCountdown(startDate);
   }
+
+  // ✅ NEW DATE FORMAT (WITH WEEKDAYS)
+  const formatDateRange = (start, end) => {
+    const startDay = start.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
+    const startDateStr = start.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+
+    const endDay = end.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
+    const endDateStr = end.toLocaleDateString("en-US", {
+      day: "numeric",
+    });
+
+    if (start.getMonth() === end.getMonth()) {
+      return `${startDay}, ${startDateStr} - ${endDay}, ${endDateStr}`;
+    }
+
+    return `${startDay}, ${startDateStr} - ${endDay}, ${end.toLocaleDateString(
+      "en-US",
+      { month: "short", day: "numeric" },
+    )}`;
+  };
+
+  const formattedDate = formatDateRange(startDate, endDate);
 
   return (
     <div
       ref={cardRef}
       className={`series-card ${isExpanded ? "expanded" : ""}`}
       onClick={() => {
-        if (onToggle) {
-          onToggle();
-        } else {
-          setInternalExpanded((prev) => !prev);
-        }
+        if (onToggle) onToggle();
+        else setInternalExpanded((prev) => !prev);
       }}>
       {/* Accent */}
-      <div className={`accent ${series.toLowerCase()}`} />
+      <div className={`accent ${series}`} />
 
       <div className="series-header">
         <div className="logo-container">
-          <img
-            src={logo}
-            alt={series}
-            className={`series-logo ${series.toLowerCase()}`}
-          />
+          <img src={logo} alt={series} className={`series-logo ${series}`} />
         </div>
 
         <div className="date-container">
@@ -136,9 +163,16 @@ export default function SeriesCard({ event, expanded, onToggle }) {
       <div className="event-name">{eventName}</div>
       <div className="event-location">{location}</div>
 
-      {/* ✅ IMPORTANT: keep mounted for animation */}
+      {/* SESSIONS */}
       <div className="sessions-wrapper">
         <div className={`sessions ${isExpanded ? "open" : ""}`}>
+          {/* EMPTY STATE */}
+          {sessions.length === 0 && (
+            <div className="session">
+              <span>Schedule yet to be released</span>
+            </div>
+          )}
+
           {sessions.map((s, idx) => {
             const isLive = now >= s.start && now <= s.end;
             const countdown = getCountdown(s.start);

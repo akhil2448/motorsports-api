@@ -3,6 +3,34 @@ const axios = require("axios");
 
 const BASE_URL = "https://api.openf1.org/v1";
 
+// ✅ ADD THIS (helper functions)
+
+function normalizeOffset(offset) {
+  if (!offset) return "UTC+00:00";
+
+  // "09:00:00" → "UTC+09:00"
+  if (/^\d{2}:\d{2}:\d{2}$/.test(offset)) {
+    return `UTC+${offset.slice(0, 5)}`;
+  }
+
+  const match = offset.match(/([+-]\d{1,2})/);
+  if (match) {
+    const hours = match[1].padStart(3, "+0");
+    return `UTC${hours}:00`;
+  }
+
+  return offset;
+}
+
+function applyOffset(utcTime, offset) {
+  const date = new Date(utcTime);
+
+  const [h, m] = offset.split(":").map(Number);
+  const offsetMs = (h * 60 + m) * 60 * 1000;
+
+  return new Date(date.getTime() + offsetMs);
+}
+
 async function fetch() {
   const currentYear = new Date().getFullYear();
 
@@ -36,6 +64,7 @@ async function fetch() {
       type: session.session_type,
       start: session.date_start,
       end: session.date_end,
+      gmt_offset: session.gmt_offset, // ✅ ADDED
     });
   });
 
@@ -70,15 +99,31 @@ async function fetch() {
       end_date: endDate,
       round: index + 1,
 
-      units: meeting.sessions.map((session, i) => ({
-        type: "session",
-        external_id: session.external_id,
-        name: session.name,
-        session_type: session.type,
-        start_time: session.start,
-        end_time: session.end,
-        order: i + 1,
-      })),
+      units: meeting.sessions.map((session, i) => {
+        const rawOffset = session.gmt_offset || "00:00:00";
+
+        const startUtc = session.start;
+        const endUtc = session.end;
+
+        const startLocal = applyOffset(startUtc, rawOffset);
+        const endLocal = applyOffset(endUtc, rawOffset);
+
+        return {
+          type: "session",
+          external_id: session.external_id,
+          name: session.name,
+          session_type: session.type,
+
+          start_time: startUtc,
+          end_time: endUtc,
+
+          start_time_local: startLocal, // ✅ ADDED
+          end_time_local: endLocal, // ✅ ADDED
+          event_timezone: normalizeOffset(rawOffset), // ✅ ADDED
+
+          order: i + 1,
+        };
+      }),
     };
   });
 

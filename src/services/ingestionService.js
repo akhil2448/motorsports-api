@@ -56,11 +56,31 @@ async function insertUnit(eventId, unit) {
   if (unit.type === "session") {
     await pool.query(
       `
-      INSERT INTO sessions
-      (event_id, external_session_id, session_name, session_type, start_time_utc, end_time_utc, session_order)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT (event_id, external_session_id) DO NOTHING
-      `,
+    INSERT INTO sessions
+    (
+      event_id,
+      external_session_id,
+      session_name,
+      session_type,
+      start_time_utc,
+      end_time_utc,
+      start_time_local,
+      end_time_local,
+      event_timezone,
+      session_order
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    ON CONFLICT (event_id, external_session_id)
+    DO UPDATE SET
+      session_name = EXCLUDED.session_name,
+      session_type = EXCLUDED.session_type,
+      start_time_utc = EXCLUDED.start_time_utc,
+      end_time_utc = EXCLUDED.end_time_utc,
+      start_time_local = EXCLUDED.start_time_local,
+      end_time_local = EXCLUDED.end_time_local,
+      event_timezone = EXCLUDED.event_timezone,
+      session_order = EXCLUDED.session_order
+    `,
       [
         eventId,
         unit.external_id,
@@ -68,6 +88,9 @@ async function insertUnit(eventId, unit) {
         unit.session_type,
         unit.start_time,
         unit.end_time,
+        unit.start_time_local,
+        unit.end_time_local,
+        unit.event_timezone,
         unit.order,
       ],
     );

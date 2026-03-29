@@ -80,22 +80,28 @@ async function upsertEvent(event) {
 async function upsertSession(session, eventId) {
   const query = `
     INSERT INTO sessions (
-      event_id,
-      session_name,
-      session_type,
-      start_time_utc,
-      end_time_utc,
-      session_order,
-      external_session_id
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,$7)
-    ON CONFLICT (event_id, external_session_id)
-    DO UPDATE SET
-      session_name = EXCLUDED.session_name,
-      session_type = EXCLUDED.session_type,
-      start_time_utc = EXCLUDED.start_time_utc,
-      end_time_utc = EXCLUDED.end_time_utc,
-      session_order = EXCLUDED.session_order;
+  event_id,
+  session_name,
+  session_type,
+  start_time_utc,
+  end_time_utc,
+  start_time_local,
+  end_time_local,
+  event_timezone,
+  session_order,
+  external_session_id
+)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+ON CONFLICT (event_id, external_session_id)
+DO UPDATE SET
+  session_name = EXCLUDED.session_name,
+  session_type = EXCLUDED.session_type,
+  start_time_utc = EXCLUDED.start_time_utc,
+  end_time_utc = EXCLUDED.end_time_utc,
+  start_time_local = EXCLUDED.start_time_local,
+  end_time_local = EXCLUDED.end_time_local,
+  event_timezone = EXCLUDED.event_timezone,
+  session_order = EXCLUDED.session_order;
   `;
 
   const values = [

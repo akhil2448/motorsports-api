@@ -28,8 +28,8 @@ async function getUpcomingEvents() {
         e.series_id,
         s.short_name AS series,
 
-        MIN(COALESCE(u.start_time, se.start_time_utc)) AS event_start,
-        MAX(COALESCE(u.end_time, se.end_time_utc)) AS event_end
+        COALESCE(MIN(COALESCE(u.start_time, se.start_time_utc)), e.start_date) AS event_start,
+        COALESCE(MAX(COALESCE(u.end_time, se.end_time_utc)), e.end_date) AS event_end
 
       FROM events e
       JOIN series s ON e.series_id = s.id
@@ -63,6 +63,7 @@ async function getUpcomingEvents() {
         status_rank
       FROM ranked_events
       WHERE event_start IS NOT NULL
+        OR e.start_date IS NOT NULL
       ORDER BY series_id, status_rank, event_start
     )
 

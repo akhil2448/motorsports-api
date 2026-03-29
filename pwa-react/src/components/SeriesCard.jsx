@@ -19,12 +19,30 @@ const logoMap = {
 export default function SeriesCard({ event, expanded, onToggle }) {
   const {
     series,
-    eventName,
+    event_name,
     location,
-    startDate,
-    endDate,
+    start_date,
+    end_date,
+    event_start,
+    event_end,
     sessions = [],
   } = event;
+
+  const safeParseDate = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d) ? null : d;
+  };
+
+  const startDate = safeParseDate(event_start) || safeParseDate(start_date);
+  const endDate = safeParseDate(event_end) || safeParseDate(end_date);
+
+  // ✅ Normalize sessions
+  const normalizedSessions = sessions.map((s) => ({
+    ...s,
+    start: new Date(s.start_time || s.start),
+    end: new Date(s.end_time || s.end),
+  }));
 
   const logo = logoMap[series];
 
@@ -68,13 +86,17 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   };
 
   // ✅ FIXED STATUS LOGIC
-  const isEventOngoing = now >= startDate && now <= endDate;
+  const isEventOngoing =
+    startDate && endDate && now >= startDate && now <= endDate;
 
   const isAnySessionLive =
-    sessions.length > 0 && sessions.some((s) => now >= s.start && now <= s.end);
+    normalizedSessions.length > 0 &&
+    normalizedSessions.some((s) => now >= s.start && now <= s.end);
 
   const nextSession =
-    sessions.length > 0 ? sessions.find((s) => s.start > now) : null;
+    normalizedSessions.length > 0
+      ? normalizedSessions.find((s) => s.start > now)
+      : null;
 
   let eventStatus = "";
 
@@ -119,7 +141,8 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     )}`;
   };
 
-  const formattedDate = formatDateRange(startDate, endDate);
+  const formattedDate =
+    startDate && endDate ? formatDateRange(startDate, endDate) : "Schedule TBD";
 
   return (
     <div
@@ -160,7 +183,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
         </div>
       </div>
 
-      <div className="event-name">{eventName}</div>
+      <div className="event-name">{event_name}</div>
       <div className="event-location">{location}</div>
 
       {/* SESSIONS */}
@@ -173,7 +196,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
             </div>
           )}
 
-          {sessions.map((s, idx) => {
+          {normalizedSessions.map((s, idx) => {
             const isLive = now >= s.start && now <= s.end;
             const countdown = getCountdown(s.start);
 

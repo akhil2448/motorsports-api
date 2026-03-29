@@ -1,6 +1,25 @@
 const axios = require("axios");
+const { DateTime } = require("luxon");
 
 const BASE_API = "https://api.dtm.com/data";
+
+/**
+ * 🌍 Country → Timezone mapping (DTM Europe only)
+ */
+const COUNTRY_TIMEZONES = {
+  AT: "Europe/Vienna",
+  DE: "Europe/Berlin",
+  NL: "Europe/Amsterdam",
+  BE: "Europe/Brussels",
+  IT: "Europe/Rome",
+  ES: "Europe/Madrid",
+  PT: "Europe/Lisbon",
+};
+
+/**
+ * 🌍 Fallback timezone (central Europe)
+ */
+const FALLBACK_TIMEZONE = "Europe/Berlin";
 
 /**
  * Normalize session type
@@ -24,6 +43,22 @@ async function fetchEventDetails(slug) {
   const { data } = await axios.get(url);
 
   return data.events?.[0] || null;
+}
+
+/**
+ * Get timezone safely
+ */
+function getTimezone(countryCode, city, slug) {
+  const tz = COUNTRY_TIMEZONES[countryCode];
+
+  if (!tz) {
+    console.warn(
+      `⚠️ Unknown timezone mapping for ${city || "Unknown city"} (${countryCode}) in event ${slug}. Using fallback ${FALLBACK_TIMEZONE}`,
+    );
+    return FALLBACK_TIMEZONE;
+  }
+
+  return tz;
 }
 
 /**
@@ -55,9 +90,14 @@ async function fetchDtmData(year = "2026") {
 
       if (!details) continue;
 
+      const countryCode = event.country?.countryCode;
+
+      // 👉 Resolve timezone
+      const timezone = getTimezone(countryCode, details.city, event.slug);
+
       // 👉 Event
       const eventObj = {
-        series_id: 5, // update later
+        series_id: 5,
         event_name: event.name,
         location: details.city || null,
         country: event.country?.name || null,
@@ -76,12 +116,34 @@ async function fetchDtmData(year = "2026") {
       const dtmSessions = timetable.filter((t) => t?.raceSeries === "DTM");
 
       dtmSessions.forEach((s, index) => {
+        const utcStart = s.start ? DateTime.fromISO(s.start) : null;
+
+        const utcEnd = s.end ? DateTime.fromISO(s.end) : null;
+
+        const localStart = utcStart ? utcStart.setZone(timezone) : null;
+
+        const localEnd = utcEnd ? utcEnd.setZone(timezone) : null;
+
+        const event_timezone = localStart
+          ? `UTC${localStart.toFormat("ZZ")}`
+          : null;
+
         const sessionObj = {
           event_slug: event.slug,
           session_name: s.label,
           session_type: getSessionType(s.label),
-          start_time_utc: s.start || null,
-          end_time_utc: s.end || null,
+
+          // ✅ UTC (from API)
+          start_time_utc: utcStart?.toISO() || null,
+          end_time_utc: utcEnd?.toISO() || null,
+
+          // ✅ LOCAL (derived)
+          start_time_local: localStart?.toISO() || null,
+          end_time_local: localEnd?.toISO() || null,
+
+          // ✅ TIMEZONE
+          event_timezone,
+
           session_order: index + 1,
           external_session_id: `${event.slug}_${index + 1}`,
         };

@@ -81,6 +81,14 @@ async function fetchGTWCEvents() {
     });
   }
 
+  // ✅ Sort events chronologically
+  events.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  // ✅ Assign round numbers
+  events.forEach((event, index) => {
+    event.round_number = index + 1;
+  });
+
   return events;
 }
 

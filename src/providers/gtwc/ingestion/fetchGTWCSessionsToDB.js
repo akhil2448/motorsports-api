@@ -62,25 +62,31 @@ async function upsertGTWCSessions(event) {
     for (const session of sessions) {
       await db.query(
         `
-  INSERT INTO sessions (
-    event_id,
-    session_name,
-    session_type,
-    start_time_utc,
-    end_time_utc,
-    session_order,
-    external_session_id
-  )
-  VALUES ($1,$2,$3,$4,$5,$6,$7)
+        INSERT INTO sessions (
+  event_id,
+  session_name,
+  session_type,
+  start_time_utc,
+  end_time_utc,
+  session_order,
+  external_session_id,
+  start_time_local,
+  end_time_local,
+  event_timezone
+)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
   `,
         [
           event.id,
           session.name,
           session.type,
-          session.start_time,
+          session.start_time_utc,
           null,
           order++,
-          `${event.slug}_${session.name}_${session.start_time}`,
+          `${event.slug}_${session.name}_${session.start_time_utc?.toISOString?.() || session.start_time_utc}`,
+          session.start_time_local,
+          null,
+          session.event_timezone,
         ],
       );
     }

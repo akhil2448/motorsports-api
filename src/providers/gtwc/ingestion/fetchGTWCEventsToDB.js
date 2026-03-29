@@ -21,23 +21,25 @@ async function ingestGTWCEvents() {
       await db.query(
         `
   INSERT INTO events (
-    series_id,
-    event_name,
-    location,
-    country,
-    start_date,
-    end_date,
-    external_event_id,
-    slug
-  )
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+  series_id,
+  event_name,
+  location,
+  country,
+  start_date,
+  end_date,
+  round_number,
+  external_event_id,
+  slug
+)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9)
   ON CONFLICT (external_event_id) DO UPDATE SET
-    event_name = EXCLUDED.event_name,
-    location = EXCLUDED.location,
-    country = EXCLUDED.country,
-    start_date = EXCLUDED.start_date,
-    end_date = EXCLUDED.end_date,
-    slug = EXCLUDED.slug
+  event_name = EXCLUDED.event_name,
+  location = EXCLUDED.location,
+  country = EXCLUDED.country,
+  start_date = EXCLUDED.start_date,
+  end_date = EXCLUDED.end_date,
+  round_number = EXCLUDED.round_number,
+  slug = EXCLUDED.slug
   `,
         [
           seriesId,
@@ -46,6 +48,7 @@ async function ingestGTWCEvents() {
           event.country,
           event.start_date,
           event.end_date,
+          event.round_number,
           event.external_event_id,
           event.slug,
         ],

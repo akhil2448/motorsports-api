@@ -102,6 +102,40 @@ async function parseEvent(url) {
   // extract slug from URL
   const slug = url.split("/event/")[1]; // "246/circuit-paul-ricard"
 
+  const sessions = [];
+
+  let currentDate = null;
+
+  $(".timetable__table tbody tr").each((_, row) => {
+    const cols = $(row).find("td");
+
+    if (cols.length === 1) {
+      // Date row like "Friday, 10 April"
+      const text = $(cols[0]).text().trim();
+      const parsed = parseDate(text);
+
+      currentDate = DateTime.fromJSDate(parsed).toFormat("yyyy-MM-dd");
+      return;
+    }
+
+    if (cols.length >= 3 && currentDate) {
+      const name = $(cols[0]).text().trim();
+      const localTime = $(cols[1]).text().trim();
+      const gmtTime = $(cols[2]).text().trim();
+
+      if (!localTime || !gmtTime) return;
+
+      const session = buildSession({
+        date: currentDate,
+        localTime,
+        gmtTime,
+        name,
+      });
+
+      sessions.push(session);
+    }
+  });
+
   return {
     series: "GTWC Europe",
     name: eventName,
@@ -111,6 +145,7 @@ async function parseEvent(url) {
     start_date: startDate,
     end_date: endDate,
     source_url: url,
+    sessions, // ✅ ADD THIS
   };
 }
 

@@ -35,7 +35,13 @@ async function getUpcomingEvents() {
         ) AS event_start,
 
         COALESCE(
-          MAX(COALESCE(u.end_time, se.end_time_utc)),
+          MAX(
+            COALESCE(
+              u.end_time,
+              se.end_time_utc,
+              se.start_time_utc   -- 🔥 CRITICAL FIX
+            )
+          ),
           e.end_date::timestamptz
         ) AS event_end
 

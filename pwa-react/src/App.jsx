@@ -49,16 +49,13 @@ function App() {
             }
 
             return {
-              id: event.id,
-              series: event.series,
-              event_name: event.event_name,
-              location: event.location,
-              event_start: event.event_start ?? null,
-              event_end: event.event_end ?? null,
+              ...event, // ✅ preserve ALL backend fields (critical fix)
               sessions: Array.isArray(sessions) ? sessions : [],
             };
           }),
         );
+
+        console.log("API DATA:", eventsData);
 
         setEvents(eventsWithSessions);
       } catch (err) {

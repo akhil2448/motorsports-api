@@ -30,27 +30,22 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
   const safeParseDate = (value) => {
     if (!value) return null;
-
     const d = new Date(value);
-
-    // ✅ correct validation
     if (isNaN(d.getTime())) return null;
-
     return d;
   };
 
   const startDate = safeParseDate(event_start) || safeParseDate(start_date);
   const endDate = safeParseDate(event_end) || safeParseDate(end_date);
 
-  //console.log("EVENT START RAW:", event_start);
-  //console.log("PARSED START:", startDate);
+  const normalizedSessions = sessions.map((s) => {
+    const start = s.start ? new Date(s.start) : new Date(s.start_time);
+    const end = s.end_time
+      ? new Date(s.end_time)
+      : new Date(start.getTime() + 20 * 60 * 1000);
 
-  // ✅ Normalize sessions
-  const normalizedSessions = sessions.map((s) => ({
-    ...s,
-    start: new Date(s.start_time || s.start),
-    end: new Date(s.end_time || s.end),
-  }));
+    return { ...s, start, end };
+  });
 
   const logo = logoMap[series];
 
@@ -60,10 +55,11 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   const [now, setNow] = useState(new Date());
   const cardRef = useRef(null);
 
+  // realtime countdown
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(new Date());
-    }, 60000);
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -93,34 +89,64 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return `${hours}h ${mins}m`;
   };
 
-  // ✅ FIXED STATUS LOGIC
-  const isEventOngoing =
-    startDate && endDate && now >= startDate && now <= endDate;
+  const formatCountdownDetailed = (target) => {
+    const diff = target - now;
+    if (diff <= 0) return null;
+
+    const totalSeconds = Math.floor(diff / 1000);
+
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    if (days > 0) return `${days}d ${hours}h`;
+
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(
+      2,
+      "0",
+    )}:${String(secs).padStart(2, "0")}`;
+  };
+
+  const formatLiveWindow = (start, end) => {
+    const startedAgo = Math.floor((now - start) / 60000);
+    const endsIn = Math.floor((end - now) / 60000);
+
+    const h = Math.floor(endsIn / 60);
+    const m = endsIn % 60;
+
+    return `Started ${startedAgo}m ago • Ends in ${h > 0 ? `${h}h ` : ""}${m}m`;
+  };
+
+  const currentSession = normalizedSessions.find(
+    (s) => now >= s.start && now <= s.end,
+  );
+
+  const nextSession = normalizedSessions.find((s) => s.start > now);
+
+  const highlightSession = currentSession || nextSession;
 
   const isAnySessionLive =
     normalizedSessions.length > 0 &&
     normalizedSessions.some((s) => now >= s.start && now <= s.end);
 
-  const nextSession =
-    normalizedSessions.length > 0
-      ? normalizedSessions.find((s) => s.start > now)
-      : null;
+  const isEventOngoing =
+    startDate && endDate && now >= startDate && now <= endDate;
 
-  let eventStatus = "";
+  // let eventStatus = "";
 
-  if (isAnySessionLive) {
-    eventStatus = "LIVE";
-  } else if (isEventOngoing) {
-    eventStatus = "UPCOMING"; // ✅ priority fix
-  } else if (nextSession) {
-    eventStatus = getCountdown(nextSession.start);
-  } else if (sessions.length > 0) {
-    eventStatus = "DONE";
-  } else {
-    eventStatus = getCountdown(startDate);
-  }
+  // if (isAnySessionLive) {
+  //   eventStatus = "LIVE";
+  // } else if (isEventOngoing) {
+  //   eventStatus = "UPCOMING";
+  // } else if (nextSession) {
+  //   eventStatus = getCountdown(nextSession.start);
+  // } else if (sessions.length > 0) {
+  //   eventStatus = "DONE";
+  // } else {
+  //   eventStatus = getCountdown(startDate);
+  // }
 
-  // ✅ NEW DATE FORMAT (WITH WEEKDAYS)
   const formatDateRange = (start, end) => {
     const startDay = start.toLocaleDateString("en-US", {
       weekday: "long",
@@ -152,6 +178,37 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   const formattedDate =
     startDate && endDate ? formatDateRange(startDate, endDate) : "Schedule TBD";
 
+  const isSameDay = (d1, d2) => {
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
+
+  const groupSessionsByDay = (sessions) => {
+    const groups = {};
+
+    sessions.forEach((s) => {
+      const date = new Date(s.start);
+
+      const key = date.toDateString(); // grouping key
+
+      if (!groups[key]) {
+        groups[key] = {
+          date,
+          sessions: [],
+        };
+      }
+
+      groups[key].sessions.push(s);
+    });
+
+    return Object.values(groups).sort((a, b) => a.date - b.date);
+  };
+
+  const groupedSessions = groupSessionsByDay(normalizedSessions);
+
   return (
     <div
       ref={cardRef}
@@ -160,7 +217,6 @@ export default function SeriesCard({ event, expanded, onToggle }) {
         if (onToggle) onToggle();
         else setInternalExpanded((prev) => !prev);
       }}>
-      {/* Accent */}
       <div className={`accent ${series}`} />
 
       <div className="series-header">
@@ -173,19 +229,19 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
           <div
             className={`countdown ${
-              eventStatus === "LIVE"
-                ? "live"
-                : eventStatus === "UPCOMING"
-                  ? "upcoming"
-                  : ""
+              isAnySessionLive ? "live" : isEventOngoing ? "upcoming" : ""
             }`}>
-            {eventStatus === "LIVE" ? (
+            {isAnySessionLive ? (
               <span className="live-indicator">
                 <span className="dot" />
                 LIVE
               </span>
+            ) : isEventOngoing ? (
+              "UPCOMING"
+            ) : nextSession ? (
+              formatCountdownDetailed(nextSession.start)
             ) : (
-              eventStatus
+              getCountdown(startDate)
             )}
           </div>
         </div>
@@ -194,34 +250,87 @@ export default function SeriesCard({ event, expanded, onToggle }) {
       <div className="event-name">{event_name}</div>
       <div className="event-location">{location}</div>
 
-      {/* SESSIONS */}
+      {/* Preview row */}
+      {highlightSession && (
+        <div className="session-preview">
+          <span className="session-preview-name">
+            {currentSession ? (
+              <span className="live-indicator">
+                <span className="dot" />
+                LIVE
+              </span>
+            ) : (
+              "Upcoming: "
+            )}{" "}
+            {highlightSession.name}
+          </span>
+
+          <span className="session-preview-time">
+            {currentSession
+              ? formatLiveWindow(highlightSession.start, highlightSession.end)
+              : formatCountdownDetailed(highlightSession.start)}
+          </span>
+        </div>
+      )}
+
       <div className="sessions-wrapper">
         <div className={`sessions ${isExpanded ? "open" : ""}`}>
-          {/* EMPTY STATE */}
           {sessions.length === 0 && (
             <div className="session">
               <span>Schedule yet to be released</span>
             </div>
           )}
 
-          {normalizedSessions.map((s, idx) => {
-            const isLive = now >= s.start && now <= s.end;
-            const countdown = getCountdown(s.start);
+          {groupedSessions.map((group) => {
+            const isToday = isSameDay(group.date, now); // ✅ ADD THIS
+
+            const dayLabel = group.date.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
 
             return (
-              <div key={idx} className={`session ${isLive ? "live" : ""}`}>
-                <span>{s.name}</span>
+              <div
+                key={group.date}
+                className={`session-day-group ${isToday ? "today" : ""}`} // ✅ ADD THIS
+              >
+                {/* DAY HEADER */}
+                <div className={`session-day ${isToday ? "today" : ""}`}>
+                  {" "}
+                  {/* ✅ ADD THIS */}
+                  {dayLabel}
+                </div>
 
-                <span className="session-time">
-                  {isLive ? (
-                    <span className="live-indicator">
-                      <span className="dot" />
-                      LIVE
-                    </span>
-                  ) : (
-                    countdown || "Done"
-                  )}
-                </span>
+                {group.sessions.map((s) => {
+                  const isLive = now >= s.start && now <= s.end;
+
+                  const isHighlight =
+                    highlightSession && s.unit_id === highlightSession.unit_id;
+
+                  const countdown = getCountdown(s.start);
+
+                  return (
+                    <div
+                      key={s.unit_id || s.name}
+                      className={`session ${isLive ? "live" : ""} ${
+                        isHighlight ? "highlight" : ""
+                      }`}>
+                      <span>{s.name}</span>
+
+                      <span className="session-time">
+                        {isLive ? (
+                          <span className="live-indicator">
+                            <span className="dot" />
+                            LIVE
+                          </span>
+                        ) : (
+                          countdown || "Done"
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

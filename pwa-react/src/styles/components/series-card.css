@@ -123,6 +123,7 @@
 .event-location {
   font-size: 14px;
   color: #aaa;
+  margin-bottom: 18px;
 }
 
 /* DATE */
@@ -207,7 +208,7 @@
 
 .countdown.upcoming {
   color: #34c759; /* iOS green */
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* EXPANDED */
@@ -217,9 +218,9 @@
 
 /* SESSIONS */
 .sessions {
-  margin-top: 12px;
+  margin-top: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0;
   max-height: 0;
   opacity: 0;
   transform: translateY(-6px);
@@ -232,7 +233,9 @@
 
 /* open state */
 .sessions.open {
-  max-height: 500px; /* enough for content */
+  margin-top: 12px; /* ✅ spacing only when expanded */
+  padding-top: 10px;
+  max-height: 2000px; /* enough for content */
   opacity: 1;
   transform: translateY(0);
 }
@@ -470,4 +473,56 @@
 /* wrapper */
 .sessions-wrapper {
   overflow: hidden;
+}
+
+/* PREVIEW ROW */
+.session-preview {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.session-preview-name {
+  color: #ccc;
+  font-weight: 700;
+}
+
+.session-preview-time {
+  color: #888;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* HIGHLIGHT SESSION */
+.session.highlight span:first-child {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.session.highlight span:last-child {
+  color: #34c759;
+  font-weight: 600;
+}
+
+.session-day-group:first-child .session-day {
+  margin-top: 12px; /* less gap for first group */
+}
+
+/* TODAY HEADER */
+.session-day.today {
+  color: #34c759;
+  font-weight: 700;
+}
+
+/* subtle glow line */
+.session-day.today::after {
+  background: rgba(52, 199, 89, 0.4); /* iOS green */
+}
+
+/* optional: slight emphasis on group */
+.session-day-group.today {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 4px 0;
 }

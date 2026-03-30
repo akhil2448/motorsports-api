@@ -42,11 +42,13 @@ export async function getEventSchedule(eventId) {
       if (!item.start_time) return null;
 
       return {
+        unit_id: item.unit_id, // ✅ critical for React rendering
         name: item.name,
         start: new Date(item.start_time),
+
         end: item.end_time
           ? new Date(item.end_time)
-          : new Date(item.start_time),
+          : new Date(new Date(item.start_time).getTime() + 20 * 60 * 1000), // ✅ fallback
       };
     })
     .filter(Boolean)

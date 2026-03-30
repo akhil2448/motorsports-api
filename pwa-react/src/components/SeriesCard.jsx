@@ -207,7 +207,9 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return Object.values(groups).sort((a, b) => a.date - b.date);
   };
 
-  const groupedSessions = groupSessionsByDay(normalizedSessions);
+  const groupedSessions = groupSessionsByDay(
+    [...normalizedSessions].sort((a, b) => a.start - b.start),
+  );
 
   return (
     <div
@@ -255,13 +257,16 @@ export default function SeriesCard({ event, expanded, onToggle }) {
         <div className="session-preview">
           <span className="session-preview-name">
             {currentSession ? (
-              <span className="live-indicator">
-                <span className="dot" />
-                LIVE
-              </span>
+              <>
+                <span className="live-indicator">
+                  <span className="dot" />
+                  LIVE
+                </span>
+                {" • "}
+              </>
             ) : (
-              "Upcoming: "
-            )}{" "}
+              "Next: "
+            )}
             {highlightSession.name}
           </span>
 

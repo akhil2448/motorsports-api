@@ -16,7 +16,6 @@ const logoMap = {
   dtm: dtmLogo,
 };
 
-// ✅ normalize backend series → frontend key
 const normalizeSeries = (s) => {
   if (!s) return "";
 
@@ -37,37 +36,25 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     series,
     event_name,
     location,
-    start_date,
-    end_date,
     event_start,
     event_end,
     sessions = [],
   } = event;
 
-  const safeDate = (val) => {
+  // ✅ STRICT parser (no hacks)
+  const parseUTCDate = (val) => {
     if (!val) return null;
-
-    let fixed = val;
-
-    if (typeof val === "string" && val.includes(" ") && !val.includes("T")) {
-      fixed = val.replace(" ", "T") + "Z";
-    }
-
-    const d = new Date(fixed);
-    return isNaN(d) ? null : d;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
   };
 
-  const startDate = safeDate(event_start) || safeDate(start_date) || null;
-
-  const endDate = safeDate(event_end) || safeDate(end_date) || null;
-
-  console.log("RAW START:", event_start);
-  console.log("PARSED:", startDate);
+  const startDate = parseUTCDate(event_start);
+  const endDate = parseUTCDate(event_end);
 
   const normalizedSessions = sessions.map((s) => ({
     ...s,
-    start: safeDate(s.start_time) || safeDate(s.start),
-    end: safeDate(s.end_time) || safeDate(s.end),
+    start: parseUTCDate(s.start_time || s.start),
+    end: parseUTCDate(s.end_time || s.end),
   }));
 
   const logo = logoMap[normalizeSeries(series)];
@@ -104,7 +91,9 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
   const isAnySessionLive =
     normalizedSessions.length > 0 &&
-    normalizedSessions.some((s) => now >= s.start && now <= s.end);
+    normalizedSessions.some(
+      (s) => s.start && s.end && now >= s.start && now <= s.end,
+    );
 
   const nextSession =
     normalizedSessions.find((s) => s.start && s.start > now) || null;
@@ -114,31 +103,25 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   if (isAnySessionLive) {
     eventStatus = "LIVE";
   } else if (isEventOngoing) {
-    eventStatus = "UPCOMING";
+    eventStatus = "LIVE";
   } else if (nextSession) {
     eventStatus = getCountdown(nextSession.start);
   } else if (normalizedSessions.length > 0) {
     eventStatus = "DONE";
   } else {
-    eventStatus = getCountdown(startDate);
+    eventStatus = getCountdown(startDate) || "TBD";
   }
 
   const formatDateRange = (start, end) => {
-    if (!start || !end) return "Schedule TBD";
+    if (!start || !end) return "TBD";
 
-    const startDay = start.toLocaleDateString("en-US", {
-      weekday: "long",
-    });
-
+    const startDay = start.toLocaleDateString("en-US", { weekday: "long" });
     const startDateStr = start.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });
 
-    const endDay = end.toLocaleDateString("en-US", {
-      weekday: "long",
-    });
-
+    const endDay = end.toLocaleDateString("en-US", { weekday: "long" });
     const endDateStr = end.toLocaleDateString("en-US", {
       day: "numeric",
     });
@@ -153,8 +136,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     )}`;
   };
 
-  const formattedDate =
-    startDate && endDate ? formatDateRange(startDate, endDate) : "Schedule TBD";
+  const formattedDate = formatDateRange(startDate, endDate);
 
   return (
     <div
@@ -175,7 +157,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
           <div className="event-date-big">{formattedDate}</div>
 
           <div className={`countdown ${eventStatus === "LIVE" ? "live" : ""}`}>
-            {eventStatus === "LIVE" ? "LIVE" : eventStatus}
+            {eventStatus}
           </div>
         </div>
       </div>

@@ -20,21 +20,16 @@ import { getUpcomingEvents, getEventSchedule } from "./services/eventsService";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const [activeTab, setActiveTab] = useState("events");
 
-  // EVENTS STATE
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [eventsError, setEventsError] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     async function loadEvents() {
@@ -43,32 +38,25 @@ function App() {
 
         const eventsData = await getUpcomingEvents();
 
-        // 🔥 fetch all schedules in parallel
         const eventsWithSessions = await Promise.all(
           eventsData.map(async (event) => {
-            try {
-              const sessions = await getEventSchedule(event.id);
+            let sessions = [];
 
-              return {
-                id: event.id,
-                series: event.series,
-                event_name: event.event_name,
-                location: event.location,
-                event_start: event.event_start,
-                event_end: event.event_end,
-                sessions: sessions || [],
-              };
-            } catch (err) {
-              return {
-                id: event.id,
-                series: event.series,
-                event_name: event.event_name,
-                location: event.location,
-                event_start: event.event_start,
-                event_end: event.event_end,
-                sessions: [],
-              };
+            try {
+              sessions = await getEventSchedule(event.id);
+            } catch {
+              sessions = [];
             }
+
+            return {
+              id: event.id,
+              series: event.series,
+              event_name: event.event_name,
+              location: event.location,
+              event_start: event.event_start ?? null,
+              event_end: event.event_end ?? null,
+              sessions: Array.isArray(sessions) ? sessions : [],
+            };
           }),
         );
 
@@ -84,14 +72,12 @@ function App() {
     loadEvents();
   }, []);
 
-  // ✅ TOGGLE + FETCH SESSIONS
   const handleToggleEvent = (eventId) => {
     setEvents((prev) =>
       prev.map((e) => (e.id === eventId ? { ...e, expanded: !e.expanded } : e)),
     );
   };
 
-  // NOTIFICATIONS
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem("notifications");
     return saved ? JSON.parse(saved) : mockNotifications;
@@ -110,7 +96,6 @@ function App() {
       <div className="app-container">
         <PageHeader title={activeTab.toUpperCase()} />
 
-        {/* EVENTS TAB */}
         {activeTab === "events" && (
           <>
             {loadingEvents && <div className="status">Loading events...</div>}
@@ -133,14 +118,12 @@ function App() {
         )}
 
         {activeTab === "calendar" && <CalendarPage />}
-
         {activeTab === "notifications" && (
           <NotificationsScreen
             notifications={notifications}
             setNotifications={setNotifications}
           />
         )}
-
         {activeTab === "profile" && <Profile />}
 
         <BottomNav

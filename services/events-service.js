@@ -83,14 +83,15 @@ async function getUpcomingEvents() {
       country,
       round_number,
       series,
-      event_start,
-      event_end
+      event_start AT TIME ZONE 'UTC' AS event_start,
+      event_end AT TIME ZONE 'UTC' AS event_end
     FROM final_pick
     ORDER BY event_start;
   `);
 
   return result.rows;
 }
+
 async function getEventsBySeries(seriesShortName) {
   const result = await pool.query(
     `

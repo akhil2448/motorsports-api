@@ -28,7 +28,6 @@ async function getUpcomingEvents() {
         e.series_id,
         s.short_name AS series,
 
-        -- ✅ fallback to event dates if no sessions
         COALESCE(
           MIN(COALESCE(u.start_time, se.start_time_utc)),
           e.start_date::timestamptz
@@ -39,7 +38,7 @@ async function getUpcomingEvents() {
             COALESCE(
               u.end_time,
               se.end_time_utc,
-              se.start_time_utc   -- 🔥 CRITICAL FIX
+              se.start_time_utc
             )
           ),
           e.end_date::timestamptz
@@ -47,7 +46,6 @@ async function getUpcomingEvents() {
 
       FROM events e
       JOIN series s ON e.series_id = s.id
-
       LEFT JOIN units_view u ON u.event_id = e.id
       LEFT JOIN sessions se ON se.event_id = e.id
 
@@ -73,20 +71,26 @@ async function getUpcomingEvents() {
         round_number,
         series,
         event_start,
-        event_end,
-        status_rank
+        event_end
       FROM ranked_events
       ORDER BY series_id, status_rank, event_start
     )
 
-    SELECT *
+    SELECT
+      id,
+      event_name,
+      location,
+      country,
+      round_number,
+      series,
+      event_start,
+      event_end
     FROM final_pick
     ORDER BY event_start;
   `);
 
   return result.rows;
 }
-
 async function getEventsBySeries(seriesShortName) {
   const result = await pool.query(
     `

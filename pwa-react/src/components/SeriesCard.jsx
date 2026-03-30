@@ -16,6 +16,22 @@ const logoMap = {
   dtm: dtmLogo,
 };
 
+// ✅ normalize backend series → frontend key
+const normalizeSeries = (s) => {
+  if (!s) return "";
+
+  const value = s.toLowerCase();
+
+  if (value.includes("f1")) return "f1";
+  if (value.includes("motogp")) return "motogp";
+  if (value.includes("wrc")) return "wrc";
+  if (value.includes("indy")) return "indycar";
+  if (value.includes("gtwc")) return "gtwc";
+  if (value.includes("dtm")) return "dtm";
+
+  return "";
+};
+
 export default function SeriesCard({ event, expanded, onToggle }) {
   const {
     series,
@@ -28,23 +44,33 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     sessions = [],
   } = event;
 
-  const safeParseDate = (value) => {
-    if (!value) return null;
-    const d = new Date(value);
+  const safeDate = (val) => {
+    if (!val) return null;
+
+    let fixed = val;
+
+    if (typeof val === "string" && val.includes(" ") && !val.includes("T")) {
+      fixed = val.replace(" ", "T") + "Z";
+    }
+
+    const d = new Date(fixed);
     return isNaN(d) ? null : d;
   };
 
-  const startDate = safeParseDate(event_start) || safeParseDate(start_date);
-  const endDate = safeParseDate(event_end) || safeParseDate(end_date);
+  const startDate = safeDate(event_start) || safeDate(start_date) || null;
 
-  // ✅ Normalize sessions
+  const endDate = safeDate(event_end) || safeDate(end_date) || null;
+
+  console.log("RAW START:", event_start);
+  console.log("PARSED:", startDate);
+
   const normalizedSessions = sessions.map((s) => ({
     ...s,
-    start: new Date(s.start_time || s.start),
-    end: new Date(s.end_time || s.end),
+    start: safeDate(s.start_time) || safeDate(s.start),
+    end: safeDate(s.end_time) || safeDate(s.end),
   }));
 
-  const logo = logoMap[series];
+  const logo = logoMap[normalizeSeries(series)];
 
   const [internalExpanded, setInternalExpanded] = useState(false);
   const isExpanded = expanded !== undefined ? expanded : internalExpanded;
@@ -59,21 +85,9 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (isExpanded && cardRef.current) {
-      const yOffset = -80;
-      const y =
-        cardRef.current.getBoundingClientRect().top +
-        window.pageYOffset +
-        yOffset;
-
-      setTimeout(() => {
-        window.scrollTo({ top: y, behavior: "smooth" });
-      }, 80);
-    }
-  }, [isExpanded]);
-
   const getCountdown = (target) => {
+    if (!target) return null;
+
     const diff = target - now;
     if (diff <= 0) return null;
 
@@ -85,7 +99,6 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return `${hours}h ${mins}m`;
   };
 
-  // ✅ FIXED STATUS LOGIC
   const isEventOngoing =
     startDate && endDate && now >= startDate && now <= endDate;
 
@@ -94,26 +107,25 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     normalizedSessions.some((s) => now >= s.start && now <= s.end);
 
   const nextSession =
-    normalizedSessions.length > 0
-      ? normalizedSessions.find((s) => s.start > now)
-      : null;
+    normalizedSessions.find((s) => s.start && s.start > now) || null;
 
   let eventStatus = "";
 
   if (isAnySessionLive) {
     eventStatus = "LIVE";
   } else if (isEventOngoing) {
-    eventStatus = "UPCOMING"; // ✅ priority fix
+    eventStatus = "UPCOMING";
   } else if (nextSession) {
     eventStatus = getCountdown(nextSession.start);
-  } else if (sessions.length > 0) {
+  } else if (normalizedSessions.length > 0) {
     eventStatus = "DONE";
   } else {
     eventStatus = getCountdown(startDate);
   }
 
-  // ✅ NEW DATE FORMAT (WITH WEEKDAYS)
   const formatDateRange = (start, end) => {
+    if (!start || !end) return "Schedule TBD";
+
     const startDay = start.toLocaleDateString("en-US", {
       weekday: "long",
     });
@@ -152,73 +164,24 @@ export default function SeriesCard({ event, expanded, onToggle }) {
         if (onToggle) onToggle();
         else setInternalExpanded((prev) => !prev);
       }}>
-      {/* Accent */}
-      <div className={`accent ${series}`} />
+      <div className={`accent ${normalizeSeries(series)}`} />
 
       <div className="series-header">
         <div className="logo-container">
-          <img src={logo} alt={series} className={`series-logo ${series}`} />
+          <img src={logo} alt={series} className="series-logo" />
         </div>
 
         <div className="date-container">
           <div className="event-date-big">{formattedDate}</div>
 
-          <div
-            className={`countdown ${
-              eventStatus === "LIVE"
-                ? "live"
-                : eventStatus === "UPCOMING"
-                  ? "upcoming"
-                  : ""
-            }`}>
-            {eventStatus === "LIVE" ? (
-              <span className="live-indicator">
-                <span className="dot" />
-                LIVE
-              </span>
-            ) : (
-              eventStatus
-            )}
+          <div className={`countdown ${eventStatus === "LIVE" ? "live" : ""}`}>
+            {eventStatus === "LIVE" ? "LIVE" : eventStatus}
           </div>
         </div>
       </div>
 
       <div className="event-name">{event_name}</div>
       <div className="event-location">{location}</div>
-
-      {/* SESSIONS */}
-      <div className="sessions-wrapper">
-        <div className={`sessions ${isExpanded ? "open" : ""}`}>
-          {/* EMPTY STATE */}
-          {sessions.length === 0 && (
-            <div className="session">
-              <span>Schedule yet to be released</span>
-            </div>
-          )}
-
-          {normalizedSessions.map((s, idx) => {
-            const isLive = now >= s.start && now <= s.end;
-            const countdown = getCountdown(s.start);
-
-            return (
-              <div key={idx} className={`session ${isLive ? "live" : ""}`}>
-                <span>{s.name}</span>
-
-                <span className="session-time">
-                  {isLive ? (
-                    <span className="live-indicator">
-                      <span className="dot" />
-                      LIVE
-                    </span>
-                  ) : (
-                    countdown || "Done"
-                  )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }

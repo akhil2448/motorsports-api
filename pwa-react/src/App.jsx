@@ -48,11 +48,26 @@ function App() {
           eventsData.map(async (event) => {
             try {
               const sessions = await getEventSchedule(event.id);
-              return { ...event, sessions };
-              // eslint-disable-next-line no-unused-vars
+
+              return {
+                id: event.id,
+                series: event.series,
+                event_name: event.event_name,
+                location: event.location,
+                event_start: event.event_start,
+                event_end: event.event_end,
+                sessions: sessions || [],
+              };
             } catch (err) {
-              console.error("schedule failed for", event.id);
-              return { ...event, sessions: [] };
+              return {
+                id: event.id,
+                series: event.series,
+                event_name: event.event_name,
+                location: event.location,
+                event_start: event.event_start,
+                event_end: event.event_end,
+                sessions: [],
+              };
             }
           }),
         );

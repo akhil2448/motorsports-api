@@ -67,12 +67,22 @@ async function getEventSchedule(eventId) {
     [eventId],
   );
 
-  // ✅ merge + dedupe + sort
-  const all = [...units.rows, ...stages.rows];
+  // ✅ MERGE + DEDUPE BY (name + start_time)
+  const map = new Map();
 
-  return all
-    .filter((u) => u.start_time)
-    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  [...units.rows, ...stages.rows].forEach((item) => {
+    if (!item.start_time) return;
+
+    const key = `${item.name}_${item.start_time}`;
+
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  });
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.start_time) - new Date(b.start_time),
+  );
 }
 
 module.exports = {

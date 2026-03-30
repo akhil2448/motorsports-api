@@ -44,42 +44,15 @@ async function getLiveUnits() {
 }
 
 async function getEventSchedule(eventId) {
-  // try units_view first
-  const result = await pool.query(
+  const units = await pool.query(
     `
     SELECT unit_id, unit_type, name, start_time, end_time
     FROM units_view
     WHERE event_id = $1
-    ORDER BY start_time
     `,
     [eventId],
   );
 
-  if (result.rows.length > 0) {
-    return result.rows;
-  }
-
-  // 🔥 fallback → sessions
-  const sessions = await pool.query(
-    `
-    SELECT
-      id AS unit_id,
-      session_type AS unit_type,
-      session_name AS name,
-      start_time_utc AS start_time,
-      end_time_utc AS end_time
-    FROM sessions
-    WHERE event_id = $1
-    ORDER BY start_time_utc
-    `,
-    [eventId],
-  );
-
-  if (sessions.rows.length > 0) {
-    return sessions.rows;
-  }
-
-  // 🔥 fallback → stages (WRC)
   const stages = await pool.query(
     `
     SELECT
@@ -90,12 +63,16 @@ async function getEventSchedule(eventId) {
       start_time_utc AS end_time
     FROM stages
     WHERE event_id = $1
-    ORDER BY start_time_utc
     `,
     [eventId],
   );
 
-  return stages.rows;
+  // ✅ merge + dedupe + sort
+  const all = [...units.rows, ...stages.rows];
+
+  return all
+    .filter((u) => u.start_time)
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 }
 
 module.exports = {

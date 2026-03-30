@@ -29,7 +29,7 @@ async function getUpcomingEvents() {
         s.short_name AS series,
 
         COALESCE(
-          MIN(COALESCE(u.start_time, se.start_time_utc)),
+          MIN(COALESCE(u.start_time, se.start_time_utc, st.start_time_utc)),
           e.start_date::timestamptz
         ) AS event_start,
 
@@ -38,7 +38,7 @@ async function getUpcomingEvents() {
             COALESCE(
               u.end_time,
               se.end_time_utc,
-              se.start_time_utc
+              st.start_time_utc  -- ✅ FIXED
             )
           ),
           e.end_date::timestamptz
@@ -48,6 +48,7 @@ async function getUpcomingEvents() {
       JOIN series s ON e.series_id = s.id
       LEFT JOIN units_view u ON u.event_id = e.id
       LEFT JOIN sessions se ON se.event_id = e.id
+      LEFT JOIN stages st ON st.event_id = e.id  -- ✅ ADDED
 
       GROUP BY e.id, s.short_name
     ),

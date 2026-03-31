@@ -526,3 +526,7 @@
   border-radius: 8px;
   padding: 4px 0;
 }
+
+.session.completed {
+  opacity: 0.4;
+}

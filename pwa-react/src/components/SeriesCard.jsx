@@ -40,11 +40,18 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
   const normalizedSessions = sessions.map((s) => {
     const start = s.start ? new Date(s.start) : new Date(s.start_time);
-    const end = s.end_time
-      ? new Date(s.end_time)
-      : new Date(start.getTime() + 20 * 60 * 1000);
+    const end = s.end
+      ? new Date(s.end)
+      : s.end_time
+        ? new Date(s.end_time)
+        : null;
 
-    return { ...s, start, end };
+    return {
+      ...s,
+      start,
+      end,
+      status: s.status, // ✅ backend status
+    };
   });
 
   const logo = logoMap[series];
@@ -118,20 +125,29 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return `Started ${startedAgo}m ago • Ends in ${h > 0 ? `${h}h ` : ""}${m}m`;
   };
 
-  const currentSession = normalizedSessions.find(
-    (s) => now >= s.start && now <= s.end,
+  const sortedSessions = [...normalizedSessions].sort(
+    (a, b) => a.start - b.start,
   );
 
-  const nextSession = normalizedSessions.find((s) => s.start > now);
+  const currentSession = sortedSessions.find((s) => s.status === "live");
 
-  const highlightSession = currentSession || nextSession;
+  const nextSession =
+    sortedSessions.find((s) => s.status === "upcoming") ||
+    sortedSessions.find((s) => s.start > now);
 
-  const isAnySessionLive =
-    normalizedSessions.length > 0 &&
-    normalizedSessions.some((s) => now >= s.start && now <= s.end);
+  const highlightSession = currentSession || nextSession || null;
 
-  const isEventOngoing =
-    startDate && endDate && now >= startDate && now <= endDate;
+  let eventStatus = "completed";
+
+  if (startDate && endDate) {
+    if (now < startDate) {
+      eventStatus = "upcoming";
+    } else if (now >= startDate && now <= endDate) {
+      eventStatus = "live"; // this is your "ongoing"
+    } else {
+      eventStatus = "completed";
+    }
+  }
 
   // let eventStatus = "";
 
@@ -231,19 +247,21 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
           <div
             className={`countdown ${
-              isAnySessionLive ? "live" : isEventOngoing ? "upcoming" : ""
+              eventStatus === "live"
+                ? "live"
+                : eventStatus === "upcoming"
+                  ? "upcoming"
+                  : ""
             }`}>
-            {isAnySessionLive ? (
+            {eventStatus === "live" ? (
               <span className="live-indicator">
                 <span className="dot" />
                 LIVE
               </span>
-            ) : isEventOngoing ? (
-              "UPCOMING"
-            ) : nextSession ? (
-              formatCountdownDetailed(nextSession.start)
-            ) : (
+            ) : eventStatus === "upcoming" ? (
               getCountdown(startDate)
+            ) : (
+              "Done"
             )}
           </div>
         </div>
@@ -253,7 +271,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
       <div className="event-location">{location}</div>
 
       {/* Preview row */}
-      {highlightSession && (
+      {highlightSession && highlightSession.start && (
         <div className="session-preview">
           <span className="session-preview-name">
             {currentSession ? (
@@ -308,19 +326,22 @@ export default function SeriesCard({ event, expanded, onToggle }) {
                 </div>
 
                 {group.sessions.map((s) => {
-                  const isLive = now >= s.start && now <= s.end;
+                  const isLive = s.status === "live";
 
                   const isHighlight =
-                    highlightSession && s.unit_id === highlightSession.unit_id;
+                    highlightSession &&
+                    Math.abs(s.start - highlightSession.start) < 1000; // 🔥 safe compare
 
                   const countdown = getCountdown(s.start);
 
                   return (
                     <div
                       key={s.unit_id || s.name}
-                      className={`session ${isLive ? "live" : ""} ${
-                        isHighlight ? "highlight" : ""
-                      }`}>
+                      className={`session 
+  ${isLive ? "live" : ""} 
+  ${isHighlight ? "highlight" : ""} 
+  ${s.status === "completed" ? "completed" : ""}
+`}>
                       <span>{s.name}</span>
 
                       <span className="session-time">

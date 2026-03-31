@@ -84,14 +84,46 @@ export default function CalendarSeriesCard({
     }
   }, [expanded]);
 
-  const getCountdown = (target) => {
+  const sortedEvents = [...data.events].sort(
+    (a, b) => new Date(a.startDate) - new Date(b.startDate),
+  );
+
+  const nextEvent =
+    sortedEvents.find((e) => new Date(e.startDate) > now) || null;
+
+  const formatCountdown = (target) => {
     const diff = target - now;
+
     if (diff <= 0) return "Now";
 
-    const h = Math.floor(diff / (1000 * 60 * 60));
-    const m = Math.floor((diff / (1000 * 60)) % 60);
+    const totalSeconds = Math.floor(diff / 1000);
+    const totalMinutes = Math.floor(diff / (1000 * 60));
+    const totalHours = Math.floor(diff / (1000 * 60 * 60));
+    const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    return `${h}h ${m}m`;
+    // > 2 days → only days
+    if (totalDays >= 2) {
+      return `${totalDays}d`;
+    }
+
+    // < 2 days → d + h
+    if (totalDays >= 1) {
+      const hours = totalHours % 24;
+      return `${totalDays}d ${hours}h`;
+    }
+
+    // < 1 day → HH:MM
+    if (totalHours >= 1) {
+      const hours = totalHours;
+      const minutes = totalMinutes % 60;
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    }
+
+    // < 1 hour → MM:SS
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
   return (
@@ -120,124 +152,153 @@ export default function CalendarSeriesCard({
 
         <div className="date-container">
           <div className="event-date-big">
-            {
-              data.events.filter((e) => new Date(e.startDate) >= new Date())
-                .length
-            }{" "}
+            {data.events.filter((e) => new Date(e.endDate) >= now).length}{" "}
             Upcoming
           </div>
         </div>
       </div>
 
+      {nextEvent && (
+        <div className="session-calendar-preview">
+          <span className="session-calendar-preview-name">
+            Next: {nextEvent.name}
+          </span>
+          <span className="session-calendar-preview-time">
+            {formatCountdown(new Date(nextEvent.startDate))}
+          </span>
+        </div>
+      )}
+
       {/* EVENTS */}
       <div className="calendar-events">
         {expanded &&
-          data.events.map((event, idx) => (
-            <div
-              key={idx}
-              className={`calendar-event ${
-                activeEvent === idx ? "active" : ""
-              }`}>
+          data.events.map((event, idx) => {
+            //const start = new Date(event.startDate);
+            const end = new Date(event.endDate);
+
+            const isCompleted = now > end;
+
+            const isNext =
+              nextEvent &&
+              new Date(event.startDate).getTime() ===
+                new Date(nextEvent.startDate).getTime();
+
+            return (
               <div
-                className="calendar-event-header"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveEvent(activeEvent === idx ? null : idx);
-                }}>
-                <div className="event-header-left">
-                  <div className="event-title">{event.name}</div>
-                  <div className="event-range">
-                    {formatDateRange(event.startDate, event.endDate)}
+                key={idx}
+                className={`calendar-event ${
+                  activeEvent === idx ? "active" : ""
+                } ${isCompleted ? "completed" : ""}`}>
+                <div
+                  className="calendar-event-header"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveEvent(activeEvent === idx ? null : idx);
+                  }}>
+                  <div className="event-header-left">
+                    <div className={`event-title ${isNext ? "highlight" : ""}`}>
+                      {event.name}
+                    </div>
+
+                    {event.location && (
+                      <div className="event-location">
+                        {event.location}
+                        {event.country ? `, ${event.country}` : ""}
+                      </div>
+                    )}
+                    <div className="event-range">
+                      {formatDateRange(event.startDate, event.endDate)}
+                    </div>
                   </div>
+
+                  <span
+                    className={`chevron ${activeEvent === idx ? "open" : ""}`}>
+                    ›
+                  </span>
                 </div>
 
-                <span
-                  className={`chevron ${activeEvent === idx ? "open" : ""}`}>
-                  ›
-                </span>
-              </div>
+                {/* SESSIONS */}
+                <div className="calendar-sessions">
+                  {activeEvent === idx &&
+                    Object.entries(groupByDay(event.sessions)).map(
+                      ([day, sessions], i) => {
+                        const isToday =
+                          new Date(day).toDateString() === now.toDateString();
 
-              {/* SESSIONS */}
-              <div className="calendar-sessions">
-                {activeEvent === idx &&
-                  Object.entries(groupByDay(event.sessions)).map(
-                    ([day, sessions], i) => {
-                      const isToday =
-                        new Date(day).toDateString() === now.toDateString();
-
-                      return (
-                        <div
-                          key={i}
-                          className={`session-day-group ${
-                            isToday ? "today" : ""
-                          }`}>
+                        return (
                           <div
-                            className={`session-day ${isToday ? "today" : ""}`}>
-                            {new Date(day).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
+                            key={i}
+                            className={`session-day-group ${
+                              isToday ? "today" : ""
+                            }`}>
+                            <div
+                              className={`session-day ${isToday ? "today" : ""}`}>
+                              {new Date(day).toLocaleDateString("en-US", {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </div>
+
+                            {sessions.map((s, j) => {
+                              const start = new Date(s.start_time_utc);
+                              const end = s.end_time_utc
+                                ? new Date(s.end_time_utc)
+                                : null;
+
+                              let isLive = false;
+
+                              if (end) {
+                                isLive = now >= start && now <= end;
+                              } else {
+                                const diff = now - start;
+                                isLive = diff >= 0 && diff <= 10 * 60 * 1000;
+                              }
+
+                              const isCompleted = end ? now > end : now > start;
+
+                              return (
+                                <div
+                                  key={j}
+                                  className={`session ${
+                                    isLive ? "live" : ""
+                                  } ${isCompleted ? "completed" : ""}`}>
+                                  <span>{s.name}</span>
+
+                                  <span>
+                                    {isLive ? (
+                                      <span className="live-indicator">
+                                        <span className="dot" />
+                                        LIVE
+                                      </span>
+                                    ) : useLocalTime ? (
+                                      (() => {
+                                        const format = (d) =>
+                                          d.toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            hour12: false,
+                                          });
+
+                                        return `${format(start)} - ${
+                                          end ? format(end) : ""
+                                        }`;
+                                      })()
+                                    ) : (
+                                      formatCountdown(start)
+                                    )}
+                                  </span>
+                                </div>
+                              );
                             })}
                           </div>
-
-                          {sessions.map((s, j) => {
-                            const start = new Date(s.start_time_utc);
-                            const end = s.end_time_utc
-                              ? new Date(s.end_time_utc)
-                              : null;
-
-                            let isLive = false;
-
-                            if (end) {
-                              isLive = now >= start && now <= end;
-                            } else {
-                              const diff = now - start;
-                              isLive = diff >= 0 && diff <= 10 * 60 * 1000;
-                            }
-
-                            const isCompleted = end ? now > end : now > start;
-
-                            return (
-                              <div
-                                key={j}
-                                className={`session ${
-                                  isLive ? "live" : ""
-                                } ${isCompleted ? "completed" : ""}`}>
-                                <span>{s.name}</span>
-
-                                <span>
-                                  {isLive ? (
-                                    <span className="live-indicator">
-                                      <span className="dot" />
-                                      LIVE
-                                    </span>
-                                  ) : useLocalTime ? (
-                                    (() => {
-                                      const format = (d) =>
-                                        d.toLocaleTimeString([], {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                          hour12: false,
-                                        });
-
-                                      return `${format(start)} - ${
-                                        end ? format(end) : ""
-                                      }`;
-                                    })()
-                                  ) : (
-                                    getCountdown(start)
-                                  )}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    },
-                  )}
+                        );
+                      },
+                    )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
     </div>
   );

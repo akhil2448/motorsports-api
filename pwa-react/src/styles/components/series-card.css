@@ -11,8 +11,8 @@
   backdrop-filter: blur(10px);
 
   border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
 
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
@@ -72,16 +72,16 @@
 .series-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center; /* better vertical alignment */
   margin-bottom: 10px;
 }
 
 /* LOGO */
 .logo-container {
   display: flex;
-  align-items: center;
-  height: 36px;
-  overflow: hidden;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
@@ -90,6 +90,7 @@
   width: auto;
   object-fit: contain;
   filter: brightness(1.4);
+  margin-bottom: 12px;
 }
 
 /* LOGO NORMALIZATION */
@@ -292,8 +293,6 @@
 
 /* EVENTS */
 .calendar-events {
-  margin-top: 10px;
-  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-left: 8px;
 
@@ -313,6 +312,11 @@
   /* margin-bottom: 10px; */
   padding: 10px 0;
   position: relative;
+}
+
+.series-card.expanded .calendar-events {
+  margin-top: 10px; /* ✅ spacing restored */
+  padding-top: 10px; /* ✅ spacing restored */
 }
 /* DIVIDER LINE BETWEEN EVENTS */
 .calendar-event:not(:last-child)::after {
@@ -382,8 +386,8 @@
 /* EVENT TITLE */
 .event-title {
   font-size: 16px;
-  font-weight: 700;
-  color: #ffffff;
+  font-weight: 500;
+  color: #ccc;
 }
 
 /* DATE RANGE */
@@ -479,8 +483,9 @@
 .session-preview {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .session-preview-name {
@@ -529,4 +534,66 @@
 
 .session.completed {
   opacity: 0.4;
+}
+
+.calendar-event.completed {
+  opacity: 0.5;
+}
+
+.event-title.highlight {
+  font-weight: 700;
+  color: #fff;
+}
+
+.next-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 8px; /* tight spacing */
+  padding-bottom: 10px;
+  /* padding-top: 6px; */
+
+  font-size: 13px;
+}
+
+.next-label {
+  color: #ccc;
+  font-weight: 600;
+}
+
+.next-time {
+  color: #888;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.session-calendar-preview {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.session-calendar-preview-name {
+  color: #ccc;
+  font-weight: 700;
+}
+
+.session-calendar-preview-time {
+  color: #888;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.event-location-inline {
+  color: #aaa;
+  font-weight: 400;
+}
+
+.event-location {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 2px;
 }

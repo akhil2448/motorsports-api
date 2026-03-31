@@ -57,6 +57,7 @@ function formatCalendar(rows) {
         event_id: eventId,
         name: row.event_name,
         location: row.location,
+        country: row.country,
         startDate,
         endDate,
         sessions: [],

@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+//const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = "http://localhost:3000";
 
 function normalizeSeries(series) {
   if (!series) return "f1";
@@ -46,9 +47,7 @@ export async function getEventSchedule(eventId) {
         name: item.name,
         start: new Date(item.start_time),
 
-        end: item.end_time
-          ? new Date(item.end_time)
-          : new Date(new Date(item.start_time).getTime() + 20 * 60 * 1000), // ✅ fallback
+        end: item.end_time ? new Date(item.end_time) : null,
       };
     })
     .filter(Boolean)

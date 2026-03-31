@@ -1,6 +1,7 @@
 require("../src/config/env");
 const pool = require("../db/pool");
 const { getFallbackEndTime } = require("../utils/fallbackDuration");
+const { getStatus } = require("../utils/status");
 
 async function getCalendar(days = 7) {
   const result = await pool.query(
@@ -96,9 +97,7 @@ function formatCalendar(rows) {
         const start = session.start_time_utc;
         const end = session.end_time_utc;
 
-        if (start > now) session.status = "upcoming";
-        else if (end && start <= now && end >= now) session.status = "live";
-        else session.status = "completed";
+        session.status = getStatus({ start, end, now });
       });
 
       // ✅ Sort sessions

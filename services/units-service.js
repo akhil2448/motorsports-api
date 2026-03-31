@@ -1,4 +1,5 @@
 require("../src/config/env");
+const { getFallbackEndTime } = require("../utils/fallbackDuration");
 const pool = require("../db/pool");
 
 async function getUpcomingUnits(limit = 20) {
@@ -46,23 +47,57 @@ async function getLiveUnits() {
 async function getEventSchedule(eventId) {
   const result = await pool.query(
     `
-    SELECT DISTINCT ON (unit_id)
-      unit_id,
-      unit_type,
-      name,
-      start_time,
-      end_time
-    FROM units_view
-    WHERE event_id = $1
-    AND start_time IS NOT NULL
-    ORDER BY unit_id, LENGTH(name) DESC
+    SELECT 
+      u.unit_id,
+      u.unit_type,
+      u.name,
+      u.start_time,
+      u.end_time,
+      e.event_name,
+      s.short_name AS series
+    FROM units_view u
+    JOIN events e ON u.event_id = e.id
+    JOIN series s ON e.series_id = s.id
+    WHERE u.event_id = $1
+    AND u.start_time IS NOT NULL
+    ORDER BY u.start_time
     `,
     [eventId],
   );
 
-  return result.rows.sort(
-    (a, b) => new Date(a.start_time) - new Date(b.start_time),
-  );
+  const rows = result.rows;
+
+  return rows.map((row) => {
+    const start = new Date(row.start_time);
+    let end = row.end_time ? new Date(row.end_time) : null;
+
+    // ✅ APPLY FALLBACK (same as calendar)
+    if (!end) {
+      const fallbackEnd = getFallbackEndTime({
+        series: row.series,
+        session: {
+          name: row.name,
+          session_type: row.unit_type,
+          start_time_utc: start,
+        },
+        event: {
+          name: row.event_name,
+          sessions: rows.map((r) => ({
+            session_type: r.unit_type,
+          })),
+        },
+      });
+
+      if (fallbackEnd) end = fallbackEnd;
+    }
+
+    return {
+      unit_id: row.unit_id,
+      name: row.name,
+      start_time: start,
+      end_time: end,
+    };
+  });
 }
 
 module.exports = {

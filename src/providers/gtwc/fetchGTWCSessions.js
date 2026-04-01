@@ -4,55 +4,6 @@ const crypto = require("crypto");
 const { DateTime } = require("luxon");
 
 /**
- * Convert GTWC timetable row → normalized session
- */
-function buildSession({ date, localTime, gmtTime, name }) {
-  // Parse times
-  const local = DateTime.fromFormat(
-    `${date} ${localTime}`,
-    "yyyy-MM-dd HH:mm",
-    { zone: "UTC" }, // temporary
-  );
-
-  const gmt = DateTime.fromFormat(`${date} ${gmtTime}`, "yyyy-MM-dd HH:mm", {
-    zone: "UTC",
-  });
-
-  // 🧠 Calculate offset
-  const offsetMinutes = local.diff(gmt, "minutes").minutes;
-
-  const offsetHours = Math.floor(offsetMinutes / 60);
-  const offsetMins = Math.abs(offsetMinutes % 60);
-
-  const sign = offsetHours >= 0 ? "+" : "-";
-
-  const event_timezone = `UTC${sign}${String(Math.abs(offsetHours)).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
-
-  return {
-    name,
-    type: normalizeSessionType(name),
-
-    start_time_utc: gmt.toISO(),
-    start_time_local: local.toISO(),
-
-    event_timezone,
-  };
-}
-
-/**
- * Normalize session type
- */
-function normalizeSessionType(name) {
-  const n = name.toLowerCase();
-
-  if (n.includes("practice")) return "Practice";
-  if (n.includes("qualifying")) return "Qualifying";
-  if (n.includes("race")) return "Race";
-
-  return "Other";
-}
-
-/**
  * Parse GMT → UTC Date (canonical)
  */
 function parseUTCDateTime(dateText, time, event) {
@@ -163,9 +114,12 @@ async function fetchGTWCSessions(event) {
           name: normalized.name,
           type: normalized.type,
 
-          start_time_utc: start_time,
-          start_time_local: local_start_time,
-
+          start_time_utc: DateTime.fromJSDate(start_time, {
+            zone: "utc",
+          }).toISO(),
+          start_time_local: DateTime.fromJSDate(local_start_time, {
+            zone: "utc",
+          }).toFormat("yyyy-MM-dd HH:mm:ss"),
           event_timezone,
         });
       });

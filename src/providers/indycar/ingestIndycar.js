@@ -107,9 +107,12 @@ DO UPDATE SET
   const values = [
     eventId,
     session.session_name,
-    normalizeSessionType(session.session_type), // ✅ FIX HERE
+    normalizeSessionType(session.session_type),
     session.start_time_utc,
-    null, // always null as per your requirement
+    null, // end_time_utc
+    session.start_time_local,
+    null, // end_time_local
+    session.event_timezone,
     session.session_order,
     session.external_session_id,
   ];

@@ -1,5 +1,6 @@
 const { fetchIndycarEvents } = require("./fetchEventLinks");
 const { fetchIndycarEventDetails } = require("./fetchEventDetails");
+const { buildTrackTimesFromLocal } = require("../../../utils/buildTrackTimes");
 const { DateTime } = require("luxon");
 
 const SERIES_ID = 4;
@@ -10,74 +11,6 @@ const SERIES_ID = 4;
 
 function cleanSessionDescription(desc) {
   return desc.replace("NTT INDYCAR SERIES - ", "").trim();
-}
-
-function convertToUTC(dayStr, timeStr, year) {
-  try {
-    if (!timeStr) return null;
-
-    const cleanTime = timeStr.replace(" ET", "").trim();
-
-    const dateTimeStr = `${dayStr} ${year} ${cleanTime}`;
-
-    const dt = DateTime.fromFormat(dateTimeStr, "EEEE, MMM d yyyy h:mma", {
-      zone: "America/New_York",
-    });
-
-    if (!dt.isValid) return null;
-
-    return dt.toUTC().toISO();
-  } catch {
-    return null;
-  }
-}
-
-// ✅ NEW: keep ET as "local"
-function convertToLocalET(dayStr, timeStr, year) {
-  try {
-    if (!timeStr) return null;
-
-    const cleanTime = timeStr.replace(" ET", "").trim();
-
-    const dateTimeStr = `${dayStr} ${year} ${cleanTime}`;
-
-    const dt = DateTime.fromFormat(dateTimeStr, "EEEE, MMM d yyyy h:mma", {
-      zone: "America/New_York",
-    });
-
-    if (!dt.isValid) return null;
-
-    return dt.toISO(); // stays in ET
-  } catch {
-    return null;
-  }
-}
-
-// ✅ NEW: timezone label
-function getEventTimezone(dayStr, timeStr, year) {
-  try {
-    const cleanTime = timeStr.replace(" ET", "").trim();
-
-    const dateTimeStr = `${dayStr} ${year} ${cleanTime}`;
-
-    const dt = DateTime.fromFormat(dateTimeStr, "EEEE, MMM d yyyy h:mma", {
-      zone: "America/New_York",
-    });
-
-    if (!dt.isValid) return "UTC+00:00";
-
-    const offset = dt.offset;
-
-    const sign = offset >= 0 ? "+" : "-";
-    const abs = Math.abs(offset);
-
-    const hours = String(Math.floor(abs / 60)).padStart(2, "0");
-    const mins = String(abs % 60).padStart(2, "0");
-
-    return `UTC${sign}${hours}:${mins}`;
-  } catch {
-    return "UTC+00:00";
-  }
 }
 
 function parseDate(dayStr, year) {
@@ -161,21 +94,25 @@ async function buildIndycarData(year = "2026") {
     schedule.forEach((s, index) => {
       const cleanedDesc = cleanSessionDescription(s.description);
 
-      const startUTC = convertToUTC(s.day, s.time, year);
-      const startLocal = convertToLocalET(s.day, s.time, year);
+      const times = buildTrackTimesFromLocal({
+        dayStr: s.day,
+        timeStr: s.time,
+        year,
+        zone: "America/New_York",
+      });
 
       const sessionObj = {
         event_slug: slug,
         session_name: cleanedDesc,
         session_type: getSessionType(cleanedDesc),
 
-        start_time_utc: startUTC,
+        start_time_utc: times.start_time,
         end_time_utc: null,
 
         // ✅ NEW FIELDS
-        start_time_local: startLocal,
+        start_time_local: times.start_time_local,
         end_time_local: null,
-        event_timezone: getEventTimezone(s.day, s.time, year),
+        event_timezone: times.event_timezone,
 
         session_order: index + 1,
         external_session_id: `${slug}_${index + 1}`,

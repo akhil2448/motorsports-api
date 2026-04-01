@@ -60,6 +60,7 @@ async function upsertGTWCSessions(event) {
     let order = 1;
 
     for (const session of sessions) {
+      // console.log("DEBUG UTC:", session.start_time_utc);
       await db.query(
         `
         INSERT INTO sessions (
@@ -83,7 +84,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
           session.start_time_utc,
           null,
           order++,
-          `${event.slug}_${session.name}_${session.start_time_utc?.toISOString?.() || session.start_time_utc}`,
+          `${event.slug}_${session.name}_${session.start_time_utc}`,
           session.start_time_local,
           null,
           session.event_timezone,

@@ -1,3 +1,5 @@
+const { DateTime } = require("luxon");
+
 function normalizeOffset(offsetStr) {
   if (!offsetStr) return "+00:00";
 
@@ -63,6 +65,67 @@ function buildTrackTimes({ startUtc, endUtc, offsetStr }) {
   };
 }
 
+function buildTrackTimesFromLocal({ dayStr, timeStr, year, zone }) {
+  try {
+    if (!timeStr || !dayStr) {
+      return {
+        start_time: null,
+        end_time: null,
+        start_time_local: null,
+        end_time_local: null,
+        event_timezone: "UTC+00:00",
+      };
+    }
+
+    const cleanTime = timeStr.replace(/ET|CT|PT|GMT/gi, "").trim();
+
+    const dateTimeStr = `${dayStr} ${year} ${cleanTime}`;
+
+    const dt = DateTime.fromFormat(dateTimeStr, "EEEE, MMM d yyyy h:mma", {
+      zone,
+      setZone: true,
+    });
+
+    if (!dt.isValid) {
+      return {
+        start_time: null,
+        end_time: null,
+        start_time_local: null,
+        end_time_local: null,
+        event_timezone: "UTC+00:00",
+      };
+    }
+
+    const utc = dt.toUTC();
+    const offset = dt.offset;
+
+    const sign = offset >= 0 ? "+" : "-";
+    const abs = Math.abs(offset);
+
+    const hours = String(Math.floor(abs / 60)).padStart(2, "0");
+    const mins = String(abs % 60).padStart(2, "0");
+
+    return {
+      start_time: utc.toISO(),
+      end_time: null,
+
+      start_time_local: dt.toFormat("yyyy-MM-dd HH:mm:ss"),
+      end_time_local: null,
+
+      event_timezone: `UTC${sign}${hours}:${mins}`,
+    };
+  } catch {
+    return {
+      start_time: null,
+      end_time: null,
+      start_time_local: null,
+      end_time_local: null,
+      event_timezone: "UTC+00:00",
+    };
+  }
+}
+
 module.exports = {
   buildTrackTimes,
+  buildTrackTimesFromLocal,
 };

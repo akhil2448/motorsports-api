@@ -3,33 +3,40 @@ const axios = require("axios");
 
 const BASE_URL = "https://api.openf1.org/v1";
 
-// ✅ ADD THIS (helper functions)
+/* =========================
+   OFFSET HELPERS
+========================= */
 
-function normalizeOffset(offset) {
-  if (!offset) return "UTC+00:00";
+function parseOffsetToMinutes(offsetStr) {
+  if (!offsetStr) return 0;
 
-  // "09:00:00" → "UTC+09:00"
-  if (/^\d{2}:\d{2}:\d{2}$/.test(offset)) {
-    return `UTC+${offset.slice(0, 5)}`;
-  }
+  // "-04:00:00" OR "03:00:00"
+  const sign = offsetStr.startsWith("-") ? -1 : 1;
 
-  const match = offset.match(/([+-]\d{1,2})/);
-  if (match) {
-    const hours = match[1].padStart(3, "+0");
-    return `UTC${hours}:00`;
-  }
+  const clean = offsetStr.replace(/[+-]/, "");
+  const [hours, minutes] = clean.split(":").map(Number);
 
-  return offset;
+  return sign * (hours * 60 + minutes);
 }
 
-function applyOffset(utcTime, offset) {
-  const date = new Date(utcTime);
+function formatOffset(offsetStr) {
+  if (!offsetStr) return "UTC+00:00";
 
-  const [h, m] = offset.split(":").map(Number);
-  const offsetMs = (h * 60 + m) * 60 * 1000;
+  const sign = offsetStr.startsWith("-") ? "-" : "+";
+  const clean = offsetStr.replace(/[+-]/, "");
 
-  return new Date(date.getTime() + offsetMs);
+  const [hours, minutes] = clean.split(":");
+
+  return `UTC${sign}${hours}:${minutes}`;
 }
+
+function toSQLTimestamp(date) {
+  return date.toISOString().replace("T", " ").substring(0, 19);
+}
+
+/* =========================
+   FETCH
+========================= */
 
 async function fetch() {
   const currentYear = new Date().getFullYear();
@@ -42,7 +49,9 @@ async function fetch() {
 
   const meetings = {};
 
-  /* GROUP SESSIONS BY MEETING */
+  /* =========================
+     GROUP SESSIONS BY MEETING
+  ========================= */
 
   sessions.forEach((session) => {
     const meetingKey = session.meeting_key;
@@ -64,13 +73,15 @@ async function fetch() {
       type: session.session_type,
       start: session.date_start,
       end: session.date_end,
-      gmt_offset: session.gmt_offset, // ✅ ADDED
+      gmt_offset: session.gmt_offset,
     });
   });
 
   const meetingsArray = Object.values(meetings);
 
-  /* SORT MEETINGS */
+  /* =========================
+     SORT MEETINGS
+  ========================= */
 
   meetingsArray.sort((a, b) => new Date(a.start) - new Date(b.start));
 
@@ -78,12 +89,18 @@ async function fetch() {
     meeting.sessions.sort((a, b) => new Date(a.start) - new Date(b.start));
   });
 
-  /* REMOVE TEST EVENTS */
+  /* =========================
+     REMOVE TEST EVENTS
+  ========================= */
 
   const raceMeetings = meetingsArray.filter((meeting) => {
     const firstSession = meeting.sessions[0].name;
     return !firstSession.includes("Day");
   });
+
+  /* =========================
+     MAP EVENTS
+  ========================= */
 
   const events = raceMeetings.map((meeting, index) => {
     const startDate = meeting.sessions[0].start.split("T")[0];
@@ -105,8 +122,17 @@ async function fetch() {
         const startUtc = session.start;
         const endUtc = session.end;
 
-        const startLocal = applyOffset(startUtc, rawOffset);
-        const endLocal = applyOffset(endUtc, rawOffset);
+        const offsetMinutes = parseOffsetToMinutes(rawOffset);
+
+        const startLocal = new Date(
+          new Date(startUtc).getTime() + offsetMinutes * 60000,
+        );
+
+        const endLocal = new Date(
+          new Date(endUtc).getTime() + offsetMinutes * 60000,
+        );
+
+        const eventTimezone = formatOffset(rawOffset);
 
         return {
           type: "session",
@@ -117,9 +143,10 @@ async function fetch() {
           start_time: startUtc,
           end_time: endUtc,
 
-          start_time_local: startLocal, // ✅ ADDED
-          end_time_local: endLocal, // ✅ ADDED
-          event_timezone: normalizeOffset(rawOffset), // ✅ ADDED
+          start_time_local: toSQLTimestamp(startLocal),
+          end_time_local: toSQLTimestamp(endLocal),
+
+          event_timezone: eventTimezone,
 
           order: i + 1,
         };

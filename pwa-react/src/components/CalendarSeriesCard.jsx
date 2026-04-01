@@ -41,12 +41,17 @@ const formatDateRange = (start, end) => {
   return `${startDate.toLocaleDateString("en-US", options)} - ${endDate.toLocaleDateString("en-US", options)}`;
 };
 
-const groupByDay = (sessions) => {
+const groupByDay = (sessions, useLocalTime) => {
   const grouped = {};
 
   sessions.forEach((s) => {
-    const date = new Date(s.start_time_utc);
-    const key = date.toDateString();
+    let key;
+
+    if (useLocalTime) {
+      key = new Date(s.start_time_utc).toDateString();
+    } else {
+      key = s.start_time_local.split(" ")[0]; // YYYY-MM-DD
+    }
 
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(s);
@@ -124,6 +129,13 @@ export default function CalendarSeriesCard({
     const seconds = totalSeconds % 60;
 
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const formatTrackTime = (str) => {
+    if (!str) return "";
+
+    const [, time] = str.split(" "); // "YYYY-MM-DD HH:mm:ss"
+    return time.slice(0, 5); // HH:mm
   };
 
   return (
@@ -220,81 +232,103 @@ export default function CalendarSeriesCard({
                 {/* SESSIONS */}
                 <div className="calendar-sessions">
                   {activeEvent === idx &&
-                    Object.entries(groupByDay(event.sessions)).map(
-                      ([day, sessions], i) => {
-                        const isToday =
-                          new Date(day).toDateString() === now.toDateString();
+                    Object.entries(
+                      groupByDay(event.sessions, useLocalTime),
+                    ).map(([day, sessions], i) => {
+                      const isToday =
+                        new Date(day).toDateString() === now.toDateString();
 
-                        return (
+                      return (
+                        <div
+                          key={i}
+                          className={`session-day-group ${
+                            isToday ? "today" : ""
+                          }`}>
                           <div
-                            key={i}
-                            className={`session-day-group ${
-                              isToday ? "today" : ""
-                            }`}>
-                            <div
-                              className={`session-day ${isToday ? "today" : ""}`}>
-                              {new Date(day).toLocaleDateString("en-US", {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </div>
-
-                            {sessions.map((s, j) => {
-                              const start = new Date(s.start_time_utc);
-                              const end = s.end_time_utc
-                                ? new Date(s.end_time_utc)
-                                : null;
-
-                              let isLive = false;
-
-                              if (end) {
-                                isLive = now >= start && now <= end;
-                              } else {
-                                const diff = now - start;
-                                isLive = diff >= 0 && diff <= 10 * 60 * 1000;
-                              }
-
-                              const isCompleted = end ? now > end : now > start;
-
-                              return (
-                                <div
-                                  key={j}
-                                  className={`session ${
-                                    isLive ? "live" : ""
-                                  } ${isCompleted ? "completed" : ""}`}>
-                                  <span>{s.name}</span>
-
-                                  <span>
-                                    {isLive ? (
-                                      <span className="live-indicator">
-                                        <span className="dot" />
-                                        LIVE
-                                      </span>
-                                    ) : useLocalTime ? (
-                                      (() => {
-                                        const format = (d) =>
-                                          d.toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            hour12: false,
-                                          });
-
-                                        return `${format(start)} - ${
-                                          end ? format(end) : ""
-                                        }`;
-                                      })()
-                                    ) : (
-                                      formatCountdown(start)
-                                    )}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                            className={`session-day ${isToday ? "today" : ""}`}>
+                            {useLocalTime
+                              ? new Date(day).toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : new Date(day + "T00:00:00").toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  },
+                                )}
                           </div>
-                        );
-                      },
-                    )}
+
+                          {sessions.map((s, j) => {
+                            const start = new Date(s.start_time_utc);
+                            const end = s.end_time_utc
+                              ? new Date(s.end_time_utc)
+                              : null;
+
+                            let isLive = false;
+
+                            if (end) {
+                              isLive = now >= start && now <= end;
+                            } else {
+                              const diff = now - start;
+                              isLive = diff >= 0 && diff <= 10 * 60 * 1000;
+                            }
+
+                            const isCompleted = end ? now > end : now > start;
+
+                            return (
+                              <div
+                                key={j}
+                                className={`session ${
+                                  isLive ? "live" : ""
+                                } ${isCompleted ? "completed" : ""}`}>
+                                <span>{s.name}</span>
+
+                                <span>
+                                  {isLive ? (
+                                    <span className="live-indicator">
+                                      <span className="dot" />
+                                      LIVE
+                                    </span>
+                                  ) : (
+                                    (() => {
+                                      const formatLocal = (d) =>
+                                        d.toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                          hour12: false,
+                                        });
+
+                                      let displayStart;
+                                      let displayEnd;
+
+                                      if (useLocalTime) {
+                                        displayStart = formatLocal(start);
+                                        displayEnd = end
+                                          ? formatLocal(end)
+                                          : null;
+                                      } else {
+                                        displayStart = formatTrackTime(
+                                          s.start_time_local,
+                                        );
+                                        displayEnd = s.end_time_local
+                                          ? formatTrackTime(s.end_time_local)
+                                          : null;
+                                      }
+
+                                      return `${displayStart}${displayEnd ? ` - ${displayEnd}` : ""}`;
+                                    })()
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             );

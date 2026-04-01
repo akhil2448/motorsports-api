@@ -1,5 +1,6 @@
 require("../../src/config/env");
 const axios = require("axios");
+const { buildTrackTimes } = require("../../utils/buildTrackTimes");
 
 const BASE_URL = "https://api.pulselive.motogp.com/motogp/v1";
 
@@ -36,34 +37,18 @@ function normalizeSessionName(name) {
   return name.trim();
 }
 
-// ✅ "+0200" → "UTC+02:00"
-function extractTimezone(offsetString) {
-  if (!offsetString) return "UTC+00:00";
+/* =========================
+   OFFSET NORMALIZATION (MotoGP specific)
+========================= */
 
-  const match = offsetString.match(/([+-]\d{2})(\d{2})$/);
-  if (!match) return "UTC+00:00";
+// "+0200" → "+02:00"
+function normalizeOffsetFormat(offset) {
+  if (!offset) return "+00:00";
 
-  return `UTC${match[1]}:${match[2]}`;
-}
+  const match = offset.match(/([+-]\d{2})(\d{2})$/);
+  if (!match) return "+00:00";
 
-function parseOffsetMinutes(offsetString) {
-  const match = offsetString.match(/([+-]\d{2})(\d{2})$/);
-  if (!match) return 0;
-
-  const hours = parseInt(match[1], 10);
-  const mins = parseInt(match[2], 10);
-
-  return hours * 60 + (hours >= 0 ? mins : -mins);
-}
-
-// ✅ Convert UTC → local using offset
-function applyOffset(dateStr, offsetStr) {
-  if (!dateStr || !offsetStr) return null;
-
-  const utcDate = new Date(dateStr);
-  const offsetMinutes = parseOffsetMinutes(offsetStr);
-
-  return new Date(utcDate.getTime() + offsetMinutes * 60000);
+  return `${match[1]}:${match[2]}`;
 }
 
 /* =========================
@@ -89,12 +74,20 @@ async function fetch() {
         const start = s.date_start;
         const endRaw = s.date_end;
 
-        // ✅ FIX 1: if same → null
         const end = start === endRaw ? null : endRaw;
 
         // extract "+0200"
         const offsetMatch = start?.match(/([+-]\d{4})$/);
-        const offset = offsetMatch ? offsetMatch[1] : "+0000";
+        const rawOffset = offsetMatch ? offsetMatch[1] : "+0000";
+
+        // normalize → "+02:00"
+        const normalizedOffset = normalizeOffsetFormat(rawOffset);
+
+        const timeData = buildTrackTimes({
+          startUtc: start,
+          endUtc: end,
+          offsetStr: normalizedOffset,
+        });
 
         return {
           type: "session",
@@ -102,16 +95,7 @@ async function fetch() {
           name: normalizeSessionName(s.name),
           session_type: s.kind,
 
-          // ✅ UTC (auto handled by JS)
-          start_time: start,
-          end_time: end,
-
-          // ✅ LOCAL (computed)
-          start_time_local: applyOffset(start, offset),
-          end_time_local: end ? applyOffset(end, offset) : null,
-
-          // ✅ TIMEZONE
-          event_timezone: extractTimezone(offset),
+          ...timeData,
 
           order: s.progressive,
         };

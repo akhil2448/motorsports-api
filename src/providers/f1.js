@@ -1,38 +1,8 @@
 require("../../src/config/env");
 const axios = require("axios");
+const { buildTrackTimes } = require("../../utils/buildTrackTimes");
 
 const BASE_URL = "https://api.openf1.org/v1";
-
-/* =========================
-   OFFSET HELPERS
-========================= */
-
-function parseOffsetToMinutes(offsetStr) {
-  if (!offsetStr) return 0;
-
-  // "-04:00:00" OR "03:00:00"
-  const sign = offsetStr.startsWith("-") ? -1 : 1;
-
-  const clean = offsetStr.replace(/[+-]/, "");
-  const [hours, minutes] = clean.split(":").map(Number);
-
-  return sign * (hours * 60 + minutes);
-}
-
-function formatOffset(offsetStr) {
-  if (!offsetStr) return "UTC+00:00";
-
-  const sign = offsetStr.startsWith("-") ? "-" : "+";
-  const clean = offsetStr.replace(/[+-]/, "");
-
-  const [hours, minutes] = clean.split(":");
-
-  return `UTC${sign}${hours}:${minutes}`;
-}
-
-function toSQLTimestamp(date) {
-  return date.toISOString().replace("T", " ").substring(0, 19);
-}
 
 /* =========================
    FETCH
@@ -117,22 +87,13 @@ async function fetch() {
       round: index + 1,
 
       units: meeting.sessions.map((session, i) => {
-        const rawOffset = session.gmt_offset || "00:00:00";
+        const rawOffset = session.gmt_offset || "+00:00:00";
 
-        const startUtc = session.start;
-        const endUtc = session.end;
-
-        const offsetMinutes = parseOffsetToMinutes(rawOffset);
-
-        const startLocal = new Date(
-          new Date(startUtc).getTime() + offsetMinutes * 60000,
-        );
-
-        const endLocal = new Date(
-          new Date(endUtc).getTime() + offsetMinutes * 60000,
-        );
-
-        const eventTimezone = formatOffset(rawOffset);
+        const timeData = buildTrackTimes({
+          startUtc: session.start,
+          endUtc: session.end,
+          offsetStr: rawOffset,
+        });
 
         return {
           type: "session",
@@ -140,13 +101,7 @@ async function fetch() {
           name: session.name,
           session_type: session.type,
 
-          start_time: startUtc,
-          end_time: endUtc,
-
-          start_time_local: toSQLTimestamp(startLocal),
-          end_time_local: toSQLTimestamp(endLocal),
-
-          event_timezone: eventTimezone,
+          ...timeData,
 
           order: i + 1,
         };

@@ -31,7 +31,7 @@ function convertStageToUTC(dateStr, timeStr, timezone) {
 
     return {
       local: `${dateStr} ${timeStr}:00`,
-      utc: utcDate.toISOString(),
+      utc: utcDate.toISOString().replace("T", " ").substring(0, 19),
     };
   } catch (err) {
     console.log("Time conversion error:", err.message);

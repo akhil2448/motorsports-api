@@ -57,11 +57,18 @@ function extractDayHeaders(text) {
 function extractStagesWithIndex(text) {
   const stages = [];
 
-  const ssRegex = /SS\s*(\d+)\s+(.+?)\s+(\d+,\d{1,2})\s+.*?(\d{1,2}:\d{2})/g;
+  const cleanedText = text.replace(/\s+/g, " ");
+
+  // // OLD REGEX (buggy – may capture wrong time)
+  // const ssRegex = /SS\s*(\d+)\s+(.+?)\s+(\d+,\d{1,2})\s+.*?(\d{1,2}:\d{2})/g;
+
+  // NEW REGEX (stable – anchors time correctly)
+  const ssRegex =
+    /SS\s*(\d+)\s+(.+?)\s+(\d+,\d{1,2})\s+(\d{1,2}:\d{2})(?=\s|$)/g;
 
   let match;
 
-  while ((match = ssRegex.exec(text)) !== null) {
+  while ((match = ssRegex.exec(cleanedText)) !== null) {
     stages.push({
       index: match.index,
       stage_code: `SS${parseInt(match[1])}`,
@@ -78,7 +85,7 @@ function extractStagesWithIndex(text) {
   // SD (optional)
   const sdRegex = /SD\s+(.+?)/g;
 
-  while ((match = sdRegex.exec(text)) !== null) {
+  while ((match = sdRegex.exec(cleanedText)) !== null) {
     const segment = match[0];
 
     const distanceMatch = segment.match(/(\d+,\d{1,2})/);
@@ -131,9 +138,11 @@ function assignDatesToStages(stages, headers) {
 async function parseWrcPdf(filePath) {
   const text = await extractTextFromPdf(filePath);
 
-  const headers = extractDayHeaders(text);
+  const cleanedText = text.replace(/\s+/g, " ");
 
-  const stagesWithIndex = extractStagesWithIndex(text);
+  const headers = extractDayHeaders(cleanedText);
+
+  const stagesWithIndex = extractStagesWithIndex(cleanedText);
 
   const finalStages = assignDatesToStages(stagesWithIndex, headers);
 

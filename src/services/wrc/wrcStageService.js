@@ -94,6 +94,11 @@ async function insertStages(event, stages) {
       timezone,
     );
 
+    // 🔥 normalize to your system standard
+    const startUtc = times?.utc || null;
+    const startLocal = times?.local || null;
+    const eventTimezone = timezone;
+
     await pool.query(
       `
       INSERT INTO stages
@@ -113,12 +118,12 @@ async function insertStages(event, stages) {
       `,
       [
         event.id,
-        stage.stage_number,
+        stage.stage_code || stage.stage_number,
         stage.name,
         stage.stage_number,
-        times?.local || null,
-        times?.utc || null,
-        timezone,
+        startLocal,
+        startUtc,
+        eventTimezone,
         stage.distance_km,
         order++,
       ],

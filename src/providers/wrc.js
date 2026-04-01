@@ -1,5 +1,6 @@
 require("../../src/config/env");
 const axios = require("axios");
+const { buildTrackTimes } = require("../../utils/buildTrackTimes");
 
 const BASE_URL = "https://p-p.redbull.com/rb-wrccom-lintegration-yv-prod/api";
 
@@ -34,8 +35,7 @@ async function fetchStages(eventId) {
           if (!competitiveStageTypes.includes(stage.stageType)) continue;
 
           let utcTime = null;
-          let localTime = null;
-          let timezone = null;
+          let offset = "+00:00";
 
           if (section.controls) {
             const control = section.controls.find(
@@ -43,23 +43,29 @@ async function fetchStages(eventId) {
             );
 
             if (control) {
-              // ✅ UTC (force Z to make it explicit)
+              // ✅ UTC (force Z)
               if (control.firstCarDueDateTime) {
                 utcTime = control.firstCarDueDateTime + "Z";
               }
 
-              // ✅ Local + timezone
+              // ✅ Extract offset from local time string
               if (control.firstCarDueDateTimeLocal) {
-                localTime = control.firstCarDueDateTimeLocal;
-
-                // Extract timezone (e.g., +01:00)
                 const match =
                   control.firstCarDueDateTimeLocal.match(/([+-]\d{2}:\d{2})$/);
 
-                timezone = match ? `UTC${match[1]}` : null;
+                if (match) {
+                  offset = match[1]; // "+01:00"
+                }
               }
             }
           }
+
+          // ✅ Use shared time builder
+          const timeData = buildTrackTimes({
+            startUtc: utcTime,
+            endUtc: null,
+            offsetStr: offset,
+          });
 
           stages.push({
             type: "stage",
@@ -68,10 +74,9 @@ async function fetchStages(eventId) {
             stage_number: stage.number,
             distance: stage.distance,
 
-            // 👇 IMPORTANT
-            start_time: utcTime, // goes to start_time_utc
-            start_time_local: localTime,
-            event_timezone: timezone,
+            start_time: timeData.start_time,
+            start_time_local: timeData.start_time_local,
+            event_timezone: timeData.event_timezone,
 
             order: stage.number,
           });

@@ -1,8 +1,20 @@
 /* profile.css */
 
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #d1d1d6;
+  --text-tertiary: #8e8e93;
+  --text-muted: #6e6e73;
+
+  --bg-card: rgba(20, 20, 28, 0.9);
+
+  --accent-blue: #0a84ff;
+  --accent-green: #34c759;
+}
+
 .profile-container {
-  padding: 16px;
-  padding-bottom: 80px;
+  padding: 18px;
+  padding-bottom: 90px;
 }
 
 .section {
@@ -10,9 +22,11 @@
 }
 
 .section-title {
-  font-size: 18px;
-  color: #666;
-  margin-bottom: 8px;
+  font-size: 16px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
 }
 
 .row {
@@ -20,10 +34,26 @@
   justify-content: space-between;
   align-items: center;
 
-  padding: 14px;
-  background: #111;
-  border-radius: 14px;
-  margin-bottom: 8px;
+  padding: 16px;
+  background: var(--bg-card);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border-radius: 16px;
+  margin-bottom: 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+  transition: transform 0.2s ease;
+}
+
+.row:active {
+  transform: scale(0.98);
 }
 
 /* iOS toggle */
@@ -41,25 +71,33 @@
 .slider {
   position: absolute;
   inset: 0;
-  background: #444;
+
+  background: #3a3a3c; /* iOS off state */
+
   border-radius: 20px;
-  transition: 0.3s;
+  transition: all 0.25s ease;
 }
 
 .slider::before {
   content: "";
   position: absolute;
+
   height: 20px;
   width: 20px;
+
   left: 3px;
   top: 3px;
+
   background: white;
   border-radius: 50%;
-  transition: 0.3s;
+
+  transition: transform 0.25s ease;
+
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 input:checked + .slider {
-  background: #34c759; /* iOS green */
+  background: var(--accent-green);
 }
 
 input:checked + .slider::before {
@@ -70,55 +108,94 @@ input:checked + .slider::before {
 
 .time-selector select {
   width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  background: #111;
-  color: white;
-  border: none;
+  padding: 12px 14px;
+
+  border-radius: 14px;
+
+  background: rgba(30, 30, 40, 0.9);
+  color: var(--text-primary);
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  font-size: 14px;
+
+  outline: none;
 }
 
 /* edit button */
 .edit-btn {
   background: none;
   border: none;
-  color: #0a84ff; /* iOS blue */
-  font-weight: 500;
+
+  color: var(--accent-blue);
+
+  font-weight: 600;
   font-size: 14px;
+
+  transition: opacity 0.2s ease;
+}
+
+.edit-btn:active {
+  opacity: 0.6;
 }
 
 /* overlay */
 .picker-overlay {
+  z-index: 99999; /* higher than header/nav */
+
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
 
   display: flex;
   align-items: flex-end;
   justify-content: center;
 
-  z-index: 9999;
+  pointer-events: auto;
 }
 
 /* modal */
 .picker-modal {
   width: 100%;
-  background: #111;
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
 
-  padding: 16px;
+  background: rgba(20, 20, 28, 0.95);
+  backdrop-filter: blur(20px);
+
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+
+  padding: 18px;
+
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+
+  position: relative;
+  z-index: 100000;
 }
 
 /* done button */
 .done-btn {
-  margin-top: 12px;
+  margin-top: 14px;
   width: 100%;
-  padding: 12px;
+  padding: 14px;
 
-  background: #0a84ff;
+  background: linear-gradient(180deg, #0a84ff, #0066ff);
+
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
 
   color: white;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 15px;
+
+  box-shadow:
+    0 4px 12px rgba(10, 132, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  transition: all 0.2s ease;
+}
+
+.done-btn:active {
+  transform: scale(0.97);
 }

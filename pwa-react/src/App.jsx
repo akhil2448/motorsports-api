@@ -26,6 +26,8 @@ function App() {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [eventsError, setEventsError] = useState(null);
 
+  const [useLocalTime, setUseLocalTime] = useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 300);
     return () => clearTimeout(timer);
@@ -91,7 +93,12 @@ function App() {
       <SplashScreen show={showSplash} />
 
       <div className="app-container">
-        <PageHeader title={activeTab.toUpperCase()} />
+        <PageHeader
+          title={activeTab.toUpperCase()}
+          useLocalTime={useLocalTime}
+          setUseLocalTime={setUseLocalTime}
+          showToggle={activeTab === "calendar"}
+        />
 
         {activeTab === "events" && (
           <>
@@ -114,7 +121,9 @@ function App() {
           </>
         )}
 
-        {activeTab === "calendar" && <CalendarPage />}
+        {activeTab === "calendar" && (
+          <CalendarPage useLocalTime={useLocalTime} />
+        )}
         {activeTab === "notifications" && (
           <NotificationsScreen
             notifications={notifications}

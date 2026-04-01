@@ -1,14 +1,27 @@
 /* src/pages/notifications.css */
 
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #d1d1d6;
+  --text-tertiary: #8e8e93;
+  --text-muted: #6e6e73;
+
+  --bg-card: rgba(20, 20, 28, 0.9);
+  --bg-card-unread: rgba(30, 30, 40, 0.95);
+
+  --accent-blue: #0a84ff;
+}
+
 .notifications-container {
-  padding: 16px;
-  padding-bottom: 80px;
+  padding: 18px;
+  padding-bottom: 90px;
 }
 
 .notifications-title {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
 }
 
 .notifications-list {
@@ -18,9 +31,20 @@
 }
 
 .notification-item {
-  background: #111;
+  background: var(--bg-card);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
   border-radius: 16px;
   padding: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
   transition:
     opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
@@ -29,13 +53,15 @@
 
 /* unread = bold + brighter */
 .notification-item.unread {
-  background: #1a1a1a;
+  background: var(--bg-card-unread);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
   opacity: 1;
 }
 
 /* read = faded */
 .notification-item.read {
-  opacity: 0.45;
+  opacity: 0.6;
   transform: scale(0.98);
 }
 
@@ -47,34 +73,54 @@
 
 .series {
   font-size: 12px;
-  color: #888;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 
 .time {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .notification-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .notification-message {
-  font-size: 13px;
-  color: #aaa;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .notification-item:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
   transition: transform 0.15s ease;
 }
 
 .section-title {
   font-size: 13px;
-  color: #666;
-  margin: 12px 6px 6px;
-  font-weight: 500;
+  color: var(--text-tertiary);
+  margin: 14px 6px 6px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.notification-item {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

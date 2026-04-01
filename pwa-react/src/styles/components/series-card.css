@@ -1,4 +1,14 @@
 /* CARD */
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #d1d1d6; /* iOS secondary */
+  --text-tertiary: #8e8e93; /* iOS tertiary */
+  --text-muted: #6e6e73;
+
+  --accent-green: #34c759;
+  --accent-red: #ff3b30;
+}
+
 .series-card {
   position: relative;
 
@@ -21,6 +31,9 @@
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     border 0.25s ease;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .series-card:active {
@@ -115,15 +128,18 @@
 
 /* TEXT */
 .event-name {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
   margin-top: 2px;
   margin-bottom: 4px;
 }
 
 .event-location {
   font-size: 14px;
-  color: #aaa;
+  color: var(--text-secondary);
+  font-size: 14px;
   margin-bottom: 18px;
 }
 
@@ -133,13 +149,15 @@
 }
 
 .event-date-big {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .countdown {
   font-size: 12px;
-  color: #888;
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
 .countdown.ongoing {
@@ -386,14 +404,15 @@
 /* EVENT TITLE */
 .event-title {
   font-size: 16px;
-  font-weight: 500;
-  color: #ccc;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 /* DATE RANGE */
 .event-range {
   font-size: 12px;
-  color: #888;
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
 /* DAY GROUP */
@@ -403,9 +422,9 @@
 
 /* DAY HEADER */
 .session-day {
-  font-size: 15px; /* ↑ bigger than sessions */
-  font-weight: 600;
-  color: #e0e0e0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
 
   margin-top: 25px;
   margin-bottom: 6px;
@@ -438,14 +457,15 @@
 
 /* SESSION NAME */
 .session span:first-child {
-  color: #ccc;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 /* SESSION TIME (LESS IMPORTANT) */
 .session span:last-child {
   font-size: 12px;
-  color: #777;
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
 /* LIVE SESSION (HIGH PRIORITY) */
@@ -461,7 +481,7 @@
 /* CHEVRON (iOS STYLE) */
 .chevron {
   font-size: 18px;
-  color: #777;
+  color: var(--text-tertiary);
 
   transition:
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
@@ -558,12 +578,12 @@
 }
 
 .next-label {
-  color: #ccc;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .next-time {
-  color: #888;
+  color: var(--text-tertiary);
   font-weight: 700;
   font-size: 12px;
 }
@@ -588,7 +608,7 @@
 }
 
 .event-location-inline {
-  color: #aaa;
+  color: var(--text-secondary);
   font-weight: 400;
 }
 
@@ -596,4 +616,39 @@
   font-size: 0.8rem;
   color: #aaa;
   margin-top: 2px;
+}
+
+/* =========================
+   FIX: FULL VISIBILITY WHEN OPEN
+========================= */
+
+/* Event opened → remove fade */
+.calendar-event.active {
+  opacity: 1 !important;
+}
+
+/* Sessions inside opened event → remove fade */
+.calendar-event.active .session {
+  opacity: 1 !important;
+}
+
+/* Even completed sessions should be readable */
+.calendar-event.active .session.completed {
+  opacity: 1 !important;
+}
+
+/* Optional: slightly emphasize active event */
+.calendar-event.active .event-title {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* Optional: boost session readability */
+.calendar-event.active .session span:first-child {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.calendar-event.active .session span:last-child {
+  color: var(--text-secondary);
 }

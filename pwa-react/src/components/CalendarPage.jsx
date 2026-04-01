@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import CalendarSeriesCard from "./CalendarSeriesCard";
 import { fetchCalendar } from "../services/calendarService";
 
-export default function CalendarPage() {
+export default function CalendarPage({ useLocalTime }) {
   // USE THIS LOGIC IF THERE IS ANY ISSUE WITH THE SIX_HOURS STORING OF
   // SEESION STORAGE OF SAVING OLD USER SERIES SELECTION
   // ✅ Persist selected series (used to initialize UI)
@@ -19,7 +19,6 @@ export default function CalendarPage() {
     MOTOGP: 6,
   };
 
-  const [useLocalTime, setUseLocalTime] = useState(true);
   const [calendarData, setCalendarData] = useState([]);
 
   const [expandedSeries, setExpandedSeries] = useState(() => {
@@ -185,21 +184,6 @@ export default function CalendarPage() {
 
   return (
     <div className="app-container">
-      {/* TOGGLE */}
-      <div className="time-toggle">
-        <button
-          className={useLocalTime ? "active" : ""}
-          onClick={() => setUseLocalTime(true)}>
-          Your Time
-        </button>
-
-        <button
-          className={!useLocalTime ? "active" : ""}
-          onClick={() => setUseLocalTime(false)}>
-          Track Time
-        </button>
-      </div>
-
       {[...calendarData]
         .sort((a, b) => {
           const orderA = SERIES_ORDER[a.series] ?? 999;

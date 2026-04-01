@@ -48,9 +48,9 @@ const groupByDay = (sessions, useLocalTime) => {
     let key;
 
     if (useLocalTime) {
-      key = new Date(s.start_time_utc).toDateString();
+      key = new Date(s.start_time_local).toDateString();
     } else {
-      key = s.start_time_local.split(" ")[0]; // YYYY-MM-DD
+      key = new Date(s.start_time_utc).toDateString();
     }
 
     if (!grouped[key]) grouped[key] = [];
@@ -134,8 +134,13 @@ export default function CalendarSeriesCard({
   const formatTrackTime = (str) => {
     if (!str) return "";
 
-    const [, time] = str.split(" "); // "YYYY-MM-DD HH:mm:ss"
-    return time.slice(0, 5); // HH:mm
+    const d = new Date(str);
+
+    return d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   };
 
   return (
@@ -252,14 +257,11 @@ export default function CalendarSeriesCard({
                                   month: "short",
                                   day: "numeric",
                                 })
-                              : new Date(day + "T00:00:00").toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                  },
-                                )}
+                              : new Date(day).toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
                           </div>
 
                           {sessions.map((s, j) => {
@@ -306,16 +308,18 @@ export default function CalendarSeriesCard({
                                       let displayEnd;
 
                                       if (useLocalTime) {
-                                        displayStart = formatLocal(start);
-                                        displayEnd = end
-                                          ? formatLocal(end)
-                                          : null;
-                                      } else {
+                                        // Track time
                                         displayStart = formatTrackTime(
                                           s.start_time_local,
                                         );
                                         displayEnd = s.end_time_local
                                           ? formatTrackTime(s.end_time_local)
+                                          : null;
+                                      } else {
+                                        // User time
+                                        displayStart = formatLocal(start);
+                                        displayEnd = end
+                                          ? formatLocal(end)
                                           : null;
                                       }
 

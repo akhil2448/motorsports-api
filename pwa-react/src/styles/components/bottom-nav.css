@@ -1,19 +1,31 @@
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #d1d1d6;
+  --text-tertiary: #8e8e93;
+  --accent-blue: #0a84ff; /* iOS blue */
+  --accent-red: #ff3b30;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 75px;
+  height: 78px;
 
-  background: rgba(15, 15, 20, 0.85);
-  backdrop-filter: blur(12px);
+  background: rgba(10, 10, 15, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 
   display: flex;
   justify-content: space-around;
   align-items: center;
 
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+  box-shadow:
+    0 -6px 30px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
   z-index: 1000;
 }
@@ -21,7 +33,8 @@
 .nav-item {
   background: none;
   border: none;
-  color: #777;
+
+  color: var(--text-tertiary);
 
   display: flex;
   flex-direction: column;
@@ -31,25 +44,39 @@
   font-size: 11px;
   font-weight: 500;
 
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 14px;
 
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .nav-item .icon {
-  font-size: 22px;
-  margin-bottom: 3px;
+  font-size: 24px;
+  margin-bottom: 4px;
+
+  transition: transform 0.25s ease;
 }
 
 .nav-item.active {
-  color: #ffffff;
+  color: var(--text-primary);
+
   background: rgba(255, 255, 255, 0.08);
+
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.nav-item:active {
+  transform: scale(0.92);
+}
+
+.nav-item:hover {
+  color: var(--text-secondary);
 }
 
 .nav-item.active .icon {
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
 
 .bell-icon {
@@ -61,14 +88,38 @@
   top: -6px;
   right: -8px;
 
-  background: #ff3b30; /* iOS red */
+  background: var(--accent-red);
   color: white;
+
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
 
   padding: 2px 6px;
-  border-radius: 10px;
+  border-radius: 999px;
 
-  min-width: 16px;
-  text-align: center;
+  min-width: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow:
+    0 2px 6px rgba(255, 59, 48, 0.4),
+    0 0 6px rgba(255, 59, 48, 0.3);
+}
+
+.bottom-nav::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
 }

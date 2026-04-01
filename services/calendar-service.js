@@ -28,6 +28,26 @@ async function getLiveCalendar() {
   return formatCalendar(result.rows);
 }
 
+function normalizeLocalTime(value) {
+  if (!value) return null;
+
+  const d =
+    typeof value === "string" && value.includes(" ")
+      ? new Date(value.replace(" ", "T"))
+      : new Date(value);
+
+  if (isNaN(d)) return null;
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+}
+
 function formatCalendar(rows) {
   const seriesMap = {};
 
@@ -74,8 +94,10 @@ function formatCalendar(rows) {
       start_time_utc: new Date(row.start_time),
       end_time_utc: row.end_time ? new Date(row.end_time) : null,
 
-      start_time_local: row.start_time_local || null,
-      end_time_local: row.end_time_local || null,
+      start_time_local: normalizeLocalTime(row.start_time_local),
+      end_time_local: normalizeLocalTime(row.end_time_local),
+
+      event_timezone: row.event_timezone,
     });
   });
 
@@ -86,6 +108,30 @@ function formatCalendar(rows) {
     seriesObj.events.forEach((event) => {
       // 🔥 Apply fallback durations
       event.sessions.forEach((session) => {
+        // 🔥 FIX: derive local time if missing (DTM case)
+        if (
+          !session.start_time_local &&
+          session.start_time_utc &&
+          session.event_timezone
+        ) {
+          const utc = new Date(session.start_time_utc);
+
+          const offsetMatch =
+            session.event_timezone.match(/([+-]\d{2}):(\d{2})/);
+
+          if (offsetMatch) {
+            const sign = offsetMatch[1].startsWith("-") ? -1 : 1;
+            const hours = Math.abs(parseInt(offsetMatch[1]));
+            const mins = parseInt(offsetMatch[2]);
+
+            const offsetMinutes = sign * (hours * 60 + mins);
+
+            const local = new Date(utc.getTime() + offsetMinutes * 60000);
+
+            session.start_time_local = normalizeLocalTime(local);
+          }
+        }
+
         if (!session.end_time_utc) {
           const fallbackEndUtc = getFallbackEndTime({
             series: seriesObj.series,
@@ -101,14 +147,10 @@ function formatCalendar(rows) {
               const duration =
                 fallbackEndUtc.getTime() - session.start_time_utc.getTime();
 
-              // ✅ parse WITHOUT timezone shift
-              const [datePart, timePart] = session.start_time_local.split(" ");
-
-              const localStart = new Date(`${datePart}T${timePart}`); // safe format
+              const localStart = new Date(session.start_time_local);
 
               const localEnd = new Date(localStart.getTime() + duration);
 
-              // ✅ format manually (NO toISOString)
               const yyyy = localEnd.getFullYear();
               const mm = String(localEnd.getMonth() + 1).padStart(2, "0");
               const dd = String(localEnd.getDate()).padStart(2, "0");

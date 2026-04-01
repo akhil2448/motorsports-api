@@ -5,7 +5,8 @@
   height: 120px;
   overflow: hidden;
   border-radius: 16px;
-  background: #111;
+  background: rgba(20, 20, 28, 0.95);
+  backdrop-filter: blur(12px);
 }
 
 /* scroll container */
@@ -29,7 +30,7 @@
   justify-content: center;
 
   font-size: 16px;
-  color: #666;
+  color: #8e8e93;
 
   scroll-snap-align: center;
   transition: all 0.2s ease;
@@ -37,9 +38,9 @@
 
 /* active item */
 .wheel-item.active {
-  color: #fff;
-  font-weight: 600;
-  transform: scale(1.1);
+  color: #ffffff;
+  font-weight: 700;
+  transform: scale(1.15);
 }
 
 /* center highlight */

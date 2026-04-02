@@ -5,6 +5,8 @@ const {
   ingestLatestPdfStages,
 } = require("../src/services/wrc/wrcStageService");
 
+const { updateWRCStages } = require("../src/services/wrc/cron/updateWRCStages");
+
 const {
   updateUpcomingEvents,
 } = require("../src/providers/indycar/cron/updateUpcomingEvents");
@@ -36,7 +38,7 @@ function verifyCron(req, res, next) {
 router.get("/wrc-pdf", verifyCron, async (req, res) => {
   console.log("🌐 WRC cron triggered");
 
-  ingestLatestPdfStages()
+  updateWRCStages()
     .then(() => console.log("✅ WRC ingestion completed"))
     .catch((err) => console.error("❌ WRC ingestion failed:", err.message));
 

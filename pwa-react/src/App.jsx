@@ -57,7 +57,7 @@ function App() {
           }),
         );
 
-        console.log("API DATA:", eventsData);
+        // console.log("API DATA:", eventsData);
 
         setEvents(eventsWithSessions);
       } catch (err) {

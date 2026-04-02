@@ -1,6 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import { getTimeAgo } from "../utils/time";
 
+import f1Logo from "../assets/logos/f1.svg";
+import motogpLogo from "../assets/logos/motogp.svg";
+import wrcLogo from "../assets/logos/wrc.svg";
+import indycarLogo from "../assets/logos/indycar.svg";
+import gtwcLogo from "../assets/logos/gtwc.svg";
+import dtmLogo from "../assets/logos/dtm.svg";
+
+const logoMap = {
+  F1: f1Logo,
+  WRC: wrcLogo,
+  MOTOGP: motogpLogo,
+  INDYCAR: indycarLogo,
+  GTWC: gtwcLogo,
+  DTM: dtmLogo,
+};
+
+const normalizeSeries = (series) => {
+  if (!series) return null;
+
+  const s = series.trim().toUpperCase();
+
+  if (s === "F1") return "F1";
+  if (s === "WRC") return "WRC";
+  if (s === "MOTOGP") return "MotoGP";
+  if (s === "INDYCAR") return "IndyCar";
+  if (s === "DTM") return "DTM";
+
+  if (s.includes("GTWC")) return "GTWC";
+
+  return null;
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 // const API_BASE = "http://localhost:3000";
 
@@ -58,8 +90,28 @@ export default function NotificationItem({
     <div
       ref={ref}
       className={`notification-item ${isSeen ? "read" : "unread"}`}>
+      {/* ✅ ACCENT BAR */}
+      {(() => {
+        const normalized = normalizeSeries(n.series);
+        return (
+          normalized && <div className={`accent ${normalized.toLowerCase()}`} />
+        );
+      })()}
       <div className="notification-header">
-        <span className="series">{n.series}</span>
+        {(() => {
+          const normalized = normalizeSeries(n.series);
+          const logo = logoMap[normalized];
+
+          return (
+            logo && (
+              <img
+                src={logo}
+                alt={normalized}
+                className={`notification-series-logo ${normalized.toLowerCase()}`}
+              />
+            )
+          );
+        })()}
         <span className="time">{getTimeAgo(n.created_at)}</span>
       </div>
 

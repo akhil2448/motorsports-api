@@ -17,6 +17,19 @@
   padding-bottom: 90px;
 }
 
+.notification-series-logo {
+  height: 14px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.9;
+
+  filter: brightness(1.1);
+
+  margin-bottom: 12px;
+
+  display: block;
+}
+
 .notifications-title {
   font-size: 24px;
   font-weight: 700;
@@ -32,6 +45,8 @@
 
 .notification-item {
   background: var(--bg-card);
+
+  position: relative;
 
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -74,6 +89,8 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 6px;
+
+  align-items: center;
 }
 
 .series {
@@ -124,4 +141,63 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 16px 0 0 16px;
+}
+
+/* Colors */
+.accent.f1 {
+  background: #e10600;
+}
+.accent.motogp {
+  background: #00d1ff;
+}
+.accent.wrc {
+  background: #ff6b00;
+}
+.accent.indycar {
+  background: #ffffff;
+}
+.accent.gtwc {
+  background: #9b59ff;
+}
+.accent.dtm {
+  background: #ffd600;
+}
+
+/* Fade when read */
+.notification-item.read .accent {
+  filter: brightness(0.6);
+}
+
+/* NOTIFICATION LOGO NORMALIZATION */
+.notification-series-logo.f1 {
+  height: 14px;
+}
+
+.notification-series-logo.motogp {
+  height: 15px;
+}
+
+.notification-series-logo.wrc {
+  height: 16px;
+}
+
+.notification-series-logo.gtwc {
+  height: 26px;
+}
+
+.notification-series-logo.dtm {
+  height: 24px;
+}
+
+.notification-series-logo.indycar {
+  height: 16px;
 }

@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { getTimeAgo } from "../utils/time";
 
-export default function NotificationItem({ n, setNotifications }) {
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE = "http://localhost:3000";
+
+export default function NotificationItem({
+  n,
+  setNotifications,
+  setUnreadCount,
+}) {
   const ref = useRef(null);
-  const [isSeen, setIsSeen] = useState(n.isRead);
+  const isSeen = n.isRead;
+
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -16,9 +24,7 @@ export default function NotificationItem({ n, setNotifications }) {
           setIsVisible(true);
         }
       },
-      {
-        threshold: 0.6,
-      },
+      { threshold: 0.6 },
     );
 
     observer.observe(el);
@@ -30,18 +36,23 @@ export default function NotificationItem({ n, setNotifications }) {
     if (!isVisible || isSeen) return;
 
     const timer = setTimeout(() => {
-      setIsSeen(true);
-
-      // ✅ update global state (important)
+      // ✅ update global state ONCE
       setNotifications((prev) =>
         prev.map((item) =>
           item.id === n.id ? { ...item, isRead: true } : item,
         ),
       );
+
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
+
+      // 🔥 persist to backend
+      fetch(`${API_BASE}/notifications/${n.id}/read`, {
+        method: "PATCH",
+      });
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [isVisible, isSeen, n.id, setNotifications]);
+  }, [isVisible, isSeen, n.id, setNotifications, setUnreadCount]);
 
   return (
     <div

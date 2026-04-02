@@ -28,23 +28,38 @@ router.get("/", async (req, res) => {
     const result = await db.query(
       `
       SELECT
-        id,
-        type,
-        title,
-        message,
-        data,
-        created_at
-      FROM notifications
-      WHERE created_at > $1
-      ORDER BY created_at DESC
+        n.id,
+        n.type,
+        n.title,
+        n.message,
+        n.data,
+        n.created_at,
+        n.is_read,
+        s.short_name AS series
+      FROM notifications n
+      JOIN series s ON n.series_id = s.id
+      WHERE n.created_at > $1
+      ORDER BY n.created_at DESC
       LIMIT 20
       `,
       [sinceDate.toISOString()],
     );
 
+    // 🔥 fetch unread count
+    const unreadRes = await db.query(
+      `
+      SELECT COUNT(*) AS count
+      FROM notifications
+      WHERE is_read = false
+      `,
+    );
+
+    const unreadCount = parseInt(unreadRes.rows[0].count, 10);
+
     return res.json({
       notifications: result.rows,
-      has_more: result.rows.length === 100,
+      unread_count: unreadCount,
+      has_more: result.rows.length === 20,
       server_time: new Date().toISOString(),
     });
   } catch (err) {
@@ -52,6 +67,26 @@ router.get("/", async (req, res) => {
     return res.status(500).json({
       error: "Internal server error",
     });
+  }
+});
+
+router.patch("/:id/read", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await db.query(
+      `
+      UPDATE notifications
+      SET is_read = true
+      WHERE id = $1
+      `,
+      [id],
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Mark read error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

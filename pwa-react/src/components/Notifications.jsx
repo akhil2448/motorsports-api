@@ -30,7 +30,11 @@ function groupNotifications(notifications) {
   return groups;
 }
 
-export default function Notifications({ notifications, setNotifications }) {
+export default function Notifications({
+  notifications,
+  setNotifications,
+  setUnreadCount,
+}) {
   // ✅ sort newest first + limit to 20
   const sorted = [...notifications]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -50,6 +54,7 @@ export default function Notifications({ notifications, setNotifications }) {
                 key={n.id}
                 n={n}
                 setNotifications={setNotifications}
+                setUnreadCount={setUnreadCount}
               />
             ))}
           </>
@@ -64,6 +69,7 @@ export default function Notifications({ notifications, setNotifications }) {
                 key={n.id}
                 n={n}
                 setNotifications={setNotifications}
+                setUnreadCount={setUnreadCount}
               />
             ))}
           </>
@@ -78,6 +84,7 @@ export default function Notifications({ notifications, setNotifications }) {
                 key={n.id}
                 n={n}
                 setNotifications={setNotifications}
+                setUnreadCount={setUnreadCount}
               />
             ))}
           </>

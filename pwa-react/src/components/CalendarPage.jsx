@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import CalendarSeriesCard from "./CalendarSeriesCard";
-import { fetchCalendar } from "../services/calendarService";
 
-export default function CalendarPage({ useLocalTime }) {
+export default function CalendarPage({ useLocalTime, calendarData, loading }) {
   // USE THIS LOGIC IF THERE IS ANY ISSUE WITH THE SIX_HOURS STORING OF
   // SEESION STORAGE OF SAVING OLD USER SERIES SELECTION
   // ✅ Persist selected series (used to initialize UI)
@@ -18,8 +17,6 @@ export default function CalendarPage({ useLocalTime }) {
     WRC: 5,
     MOTOGP: 6,
   };
-
-  const [calendarData, setCalendarData] = useState([]);
 
   const [expandedSeries, setExpandedSeries] = useState(() => {
     const saved = sessionStorage.getItem("selectedSeries");
@@ -50,15 +47,6 @@ export default function CalendarPage({ useLocalTime }) {
       return null;
     }
   });
-
-  useEffect(() => {
-    async function load() {
-      const data = await fetchCalendar();
-      setCalendarData(data);
-    }
-
-    load();
-  }, []);
 
   const handleToggle = (series) => {
     setExpandedSeries((prev) => {
@@ -181,6 +169,10 @@ export default function CalendarPage({ useLocalTime }) {
   //   { series: "F1", events: generateF1Events() },
   //   { series: "WRC", events: generateWRCEvents() },
   // ];
+
+  if (loading) {
+    return <div className="status">Loading calendar...</div>;
+  }
 
   return (
     <div className="app-container">

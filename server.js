@@ -11,6 +11,8 @@ const scheduleRoutes = require("./routes/schedule");
 const errorHandler = require("./src/middleware/errorHandler");
 const internalRoutes = require("./routes/internal");
 const notificationsRoute = require("./routes/notifications");
+const usersRoute = require("./routes/users");
+const userPreferencesRoute = require("./routes/userPreferences");
 
 const app = express();
 
@@ -36,6 +38,8 @@ app.use("/units", unitsRoutes);
 app.use("/schedule", scheduleRoutes);
 app.use("/internal", internalRoutes);
 app.use("/notifications", notificationsRoute);
+app.use("/users", usersRoute);
+app.use("/user-preferences", userPreferencesRoute);
 
 /* ✅ 404 HANDLER */
 app.use((req, res) => {

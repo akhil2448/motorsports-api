@@ -6,6 +6,8 @@ import NotificationsScreen from "./components/Notifications";
 import SplashScreen from "./components/SplashScreen";
 import Profile from "./components/Profile";
 import PageHeader from "./components/PageHeader";
+import { getOrCreateUser } from "./services/userManager";
+import { getUserPreferences } from "./services/userPreferencesService";
 
 import "./styles/components/splash.css";
 import "./styles/base.css";
@@ -33,6 +35,33 @@ function App() {
   const [loadingCalendar, setLoadingCalendar] = useState(true);
 
   const [useLocalTime, setUseLocalTime] = useState(false);
+
+  const [preferences, setPreferences] = useState(null);
+  const [loadingPreferences, setLoadingPreferences] = useState(true);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const userId = await getOrCreateUser();
+
+        const prefs = await getUserPreferences(userId);
+
+        setPreferences(prefs);
+      } catch (err) {
+        console.error("Init failed", err);
+      } finally {
+        setLoadingPreferences(false);
+      }
+    }
+
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (preferences) {
+      console.log("Preferences updated:", preferences);
+    }
+  }, [preferences]);
 
   //SPLASH SCREEN TIMEOUT - 4000
   useEffect(() => {
@@ -182,7 +211,13 @@ function App() {
             setUnreadCount={setUnreadCount}
           />
         )}
-        {activeTab === "profile" && <Profile />}
+        {activeTab === "profile" && (
+          <Profile
+            preferences={preferences}
+            setPreferences={setPreferences}
+            loading={loadingPreferences}
+          />
+        )}
 
         <BottomNav
           activeTab={activeTab}

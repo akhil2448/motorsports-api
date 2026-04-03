@@ -21,7 +21,6 @@ import { getUpcomingEvents, getEventSchedule } from "./services/eventsService";
 import { fetchCalendar } from "./services/calendarService";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
-// const API_BASE = "http://localhost:3000";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);

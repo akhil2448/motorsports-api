@@ -13,6 +13,7 @@ const internalRoutes = require("./routes/internal");
 const notificationsRoute = require("./routes/notifications");
 const usersRoute = require("./routes/users");
 const userPreferencesRoute = require("./routes/userPreferences");
+const cronRoutes = require("./routes/cron");
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use("/internal", internalRoutes);
 app.use("/notifications", notificationsRoute);
 app.use("/users", usersRoute);
 app.use("/user-preferences", userPreferencesRoute);
+app.use("/api/cron", cronRoutes);
 
 /* ✅ 404 HANDLER */
 app.use((req, res) => {

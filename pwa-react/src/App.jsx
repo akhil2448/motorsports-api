@@ -34,7 +34,7 @@ function App() {
 
   const [useLocalTime, setUseLocalTime] = useState(false);
 
-  //SPLASH SCREEN TIMEOUT - 8300
+  //SPLASH SCREEN TIMEOUT - 4000
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
     return () => clearTimeout(timer);

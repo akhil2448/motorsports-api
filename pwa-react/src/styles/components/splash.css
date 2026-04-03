@@ -26,8 +26,9 @@
 
   opacity: 0;
 
-  animation: dimOverlay 2.2s ease forwards;
-  animation-delay: 0.6s;
+  /* animation: dimOverlay 2.2s ease forwards; */
+  animation: dimOverlay 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.2s;
 
   pointer-events: none;
   z-index: 0;
@@ -68,15 +69,12 @@
   transform: scale(0.96);
 
   animation:
-    logoIn 0.7s ease forwards,
-    /* 👇 staged pulse speeds */ logoPulseSlow 2.2s ease-in-out 1 forwards,
-    logoPulseMed 1.4s ease-in-out 2.2s 2 forwards,
-    logoPulseFast 0.8s ease-in-out 4.5s 3 forwards,
-    logoPulseStop 0.4s ease forwards 7.4s;
+    logoIn 0.6s ease forwards,
+    logoPulse 1.6s ease-in-out infinite 0.8s;
 
   will-change: transform, filter;
 
-  filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.25));
+  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.4));
 }
 
 @keyframes logoPulseSlow {
@@ -91,36 +89,23 @@
   }
 }
 
-@keyframes logoPulseMed {
-  0%,
-  100% {
+@keyframes logoPulse {
+  0% {
     transform: scale(1);
-    filter: drop-shadow(0 0 8px rgba(255, 60, 0, 0.3));
+    filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.4))
+      drop-shadow(0 0 18px rgba(255, 0, 0, 0.25));
   }
-  50% {
-    transform: scale(1.04);
-    filter: drop-shadow(0 0 14px rgba(255, 50, 0, 0.45));
-  }
-}
 
-@keyframes logoPulseFast {
-  0%,
-  100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 10px rgba(255, 40, 0, 0.4));
-  }
   50% {
     transform: scale(1.06);
-    filter: drop-shadow(0 0 18px rgba(255, 30, 0, 0.7))
-      drop-shadow(0 0 30px rgba(255, 0, 0, 0.4));
+    filter: drop-shadow(0 0 18px rgba(255, 0, 0, 0.8))
+      drop-shadow(0 0 32px rgba(255, 0, 0, 0.5));
   }
-}
 
-/* 👇 stop pulse before last light */
-@keyframes logoPulseStop {
-  to {
+  100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.2));
+    filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.4))
+      drop-shadow(0 0 18px rgba(255, 0, 0, 0.25));
   }
 }
 
@@ -136,7 +121,7 @@
   opacity: 0;
 
   animation: fadeIn 0.8s ease forwards;
-  animation-delay: 0.9s;
+  animation-delay: 0.8s;
 }
 
 /* ===== CAPTION ===== */
@@ -151,7 +136,7 @@
   opacity: 0;
 
   animation: fadeIn 0.8s ease forwards;
-  animation-delay: 1.8s;
+  animation-delay: 1.4s;
 }
 
 /* ===== LIGHTS ===== */
@@ -163,7 +148,7 @@
 
   opacity: 0;
   animation: fadeIn 0.3s ease forwards;
-  animation-delay: 2.7s;
+  animation-delay: 0.3s;
 }
 
 /* ===== LIGHT BASE ===== */
@@ -197,47 +182,36 @@
   }
 }
 
-/* ON together */
-.light-0,
-.light-1,
-.light-2,
-.light-3,
-.light-4 {
-  animation: lightOn 0.2s forwards;
-  animation-delay: 3s;
-}
-
-/* OFF sequence (more natural timing) */
+/* ===== F1 LIGHTSOFF SEQUENCE ===== */
 
 .light-0 {
   animation:
-    lightOn 0.2s forwards 2.4s,
-    lightOff 0.35s forwards 3.4s;
+    lightOn 0.25s forwards 1.3s,
+    lightOff 0.3s forwards 3.5s;
 }
 
 .light-1 {
   animation:
-    lightOn 0.2s forwards 2.4s,
-    lightOff 0.32s forwards 4.2s;
+    lightOn 0.25s forwards 1.7s,
+    lightOff 0.3s forwards 3.5s;
 }
 
 .light-2 {
   animation:
-    lightOn 0.2s forwards 2.4s,
-    lightOff 0.36s forwards 5.1s;
+    lightOn 0.25s forwards 2.1s,
+    lightOff 0.3s forwards 3.5s;
 }
 
 .light-3 {
   animation:
-    lightOn 0.2s forwards 2.4s,
-    lightOff 0.3s forwards 6s;
+    lightOn 0.25s forwards 2.5s,
+    lightOff 0.3s forwards 3.5s;
 }
 
-/* 👇 Final light (long pause like F1) */
 .light-4 {
   animation:
-    lightOn 0.2s forwards 2.4s,
-    lightOff 0.45s forwards 7.6s;
+    lightOn 0.25s forwards 2.9s,
+    lightOff 0.3s forwards 3.5s;
 }
 
 /* ===== KEYFRAMES ===== */

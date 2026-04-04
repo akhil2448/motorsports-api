@@ -8,27 +8,53 @@ const { randomUUID } = require("crypto");
 /**
  * 🔔 Notification helper
  */
-async function createNotification(payload) {
+async function createNotificationsForUsers(payload) {
   const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
 
-  const query = `
-    INSERT INTO notifications (
-      id, series_id, event_id, type, title, message, data, dedupe_key
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    ON CONFLICT (dedupe_key) DO NOTHING
-  `;
+  // 🔥 IndyCar short_name = INDYCAR
+  const usersRes = await db.query(
+    `
+    SELECT user_id
+    FROM user_preferences
+    WHERE $1 = ANY(followed_series)
+    `,
+    ["INDYCAR"],
+  );
 
-  await db.query(query, [
-    randomUUID(),
-    seriesId,
-    eventId,
-    type,
-    title,
-    message,
-    data,
-    dedupeKey,
-  ]);
+  const users = usersRes.rows;
+
+  for (const user of users) {
+    const userDedupeKey = `${user.user_id}-${dedupeKey}`;
+
+    await db.query(
+      `
+      INSERT INTO notifications (
+        id,
+        user_id,
+        series_id,
+        event_id,
+        type,
+        title,
+        message,
+        data,
+        dedupe_key
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (dedupe_key) DO NOTHING
+      `,
+      [
+        randomUUID(),
+        user.user_id,
+        seriesId,
+        eventId,
+        type,
+        title,
+        message,
+        data,
+        userDedupeKey,
+      ],
+    );
+  }
 }
 
 /**
@@ -55,7 +81,7 @@ function parseDate(dayStr, year) {
 
 async function getAllIndycarEvents() {
   const query = `
-    SELECT id, slug, end_date, series_id
+    SELECT id, slug, event_name, end_date, series_id
     FROM events
     WHERE series_id = 4
       AND slug IS NOT NULL
@@ -70,7 +96,7 @@ async function getAllIndycarEvents() {
  */
 async function getUpcomingEvents() {
   const query = `
-    SELECT id, slug, end_date, series_id
+    SELECT id, slug, event_name, end_date, series_id
     FROM events
     WHERE series_id = 4
       AND start_date IS NULL
@@ -168,7 +194,7 @@ async function updateUpcomingEvents() {
   }
 
   for (const event of events) {
-    const { id, slug, end_date, series_id } = event;
+    const { id, slug, event_name, end_date, series_id } = event;
 
     console.log(`\nProcessing: ${slug}`);
 
@@ -206,13 +232,16 @@ async function updateUpcomingEvents() {
     console.log("→ sessions upserted");
 
     if (existingCount === 0) {
-      await createNotification({
+      await createNotificationsForUsers({
         seriesId: series_id,
         eventId: id,
         type: "schedule_released",
 
-        title: "IndyCar Schedule Released",
-        message: `${slug} full schedule is now available`,
+        // ✅ Normalized title
+        title: `${event_name} schedule released`,
+
+        // ✅ Normalized message
+        message: `INDYCAR|${event_name}|schedule has been released`,
 
         data: {
           sessions_count: schedule.length,

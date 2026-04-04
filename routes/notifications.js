@@ -8,11 +8,12 @@ const db = require("../db/pool");
 router.get("/", async (req, res) => {
   try {
     const { since } = req.query;
+    const userId = req.headers["x-user-id"];
 
     // 🛑 Validate input
-    if (!since) {
+    if (!since || !userId) {
       return res.status(400).json({
-        error: "Missing 'since' query param",
+        error: "Missing 'since' or 'x-user-id'",
       });
     }
 
@@ -24,7 +25,7 @@ router.get("/", async (req, res) => {
       });
     }
 
-    // 📦 Fetch notifications
+    // 📦 Fetch notifications (USER SCOPED)
     const result = await db.query(
       `
       SELECT
@@ -38,20 +39,23 @@ router.get("/", async (req, res) => {
         s.short_name AS series
       FROM notifications n
       JOIN series s ON n.series_id = s.id
-      WHERE n.created_at > $1
+      WHERE n.user_id = $1
+      AND n.created_at > $2
       ORDER BY n.created_at DESC
       LIMIT 20
       `,
-      [sinceDate.toISOString()],
+      [userId, sinceDate.toISOString()],
     );
 
-    // 🔥 fetch unread count
+    // 🔥 unread count (USER SCOPED)
     const unreadRes = await db.query(
       `
       SELECT COUNT(*) AS count
       FROM notifications
-      WHERE is_read = false
+      WHERE user_id = $1
+      AND is_read = false
       `,
+      [userId],
     );
 
     const unreadCount = parseInt(unreadRes.rows[0].count, 10);
@@ -70,17 +74,28 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * PATCH /notifications/:id/read
+ */
 router.patch("/:id/read", async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.headers["x-user-id"];
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "Missing 'x-user-id'",
+      });
+    }
 
     await db.query(
       `
       UPDATE notifications
       SET is_read = true
       WHERE id = $1
+      AND user_id = $2
       `,
-      [id],
+      [id, userId],
     );
 
     return res.json({ success: true });

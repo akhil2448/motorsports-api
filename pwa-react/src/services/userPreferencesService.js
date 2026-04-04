@@ -1,7 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import { apiFetch } from "./apiClient";
 
 export async function getUserPreferences(userId) {
-  const res = await fetch(`${API_BASE}/user-preferences/${userId}`);
+  const res = await apiFetch(`/user-preferences/${userId}`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch preferences");
@@ -11,11 +11,8 @@ export async function getUserPreferences(userId) {
 }
 
 export async function saveUserPreferences(payload) {
-  const res = await fetch(`${API_BASE}/user-preferences`, {
+  const res = await apiFetch(`/user-preferences`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(payload),
   });
 

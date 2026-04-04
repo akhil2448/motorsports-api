@@ -134,9 +134,17 @@ function App() {
   useEffect(() => {
     async function fetchNotifications() {
       try {
+        const userId = localStorage.getItem("user_id");
+        if (!userId) return; // 🚫 wait until user exists
+
         const since = new Date(0).toISOString();
 
-        const res = await fetch(`${API_BASE}/notifications?since=${since}`);
+        const res = await fetch(`${API_BASE}/notifications?since=${since}`, {
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+
         const data = await res.json();
 
         setNotifications(
@@ -157,7 +165,7 @@ function App() {
     const interval = setInterval(fetchNotifications, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [preferences]); // 🔥 KEY CHANGE
 
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));

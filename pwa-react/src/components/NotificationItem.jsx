@@ -79,6 +79,9 @@ export default function NotificationItem({
       // 🔥 persist to backend
       fetch(`${API_BASE}/notifications/${n.id}/read`, {
         method: "PATCH",
+        headers: {
+          "x-user-id": localStorage.getItem("user_id"),
+        },
       });
     }, 1200);
 
@@ -115,7 +118,24 @@ export default function NotificationItem({
       </div>
 
       <div className="notification-title">{n.title}</div>
-      <div className="notification-message">{n.message}</div>
+      {(() => {
+        if (!n.message) return null;
+
+        const parts = n.message.split("|");
+
+        if (parts.length < 3) {
+          return <div className="notification-message">{n.message}</div>;
+        }
+
+        const [, event, detail] = parts;
+
+        return (
+          <div className="notification-message">
+            <span className="message-event">{event}</span>{" "}
+            <span className="message-detail">{detail}</span>
+          </div>
+        );
+      })()}
     </div>
   );
 }

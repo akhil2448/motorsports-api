@@ -2,27 +2,53 @@ const { fetchGTWCSessions } = require("../fetchGTWCSessions");
 const db = require("../../../../db/pool");
 const { randomUUID } = require("crypto");
 
-async function createNotification(payload) {
+async function createNotificationsForUsers(payload) {
   const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
 
-  const query = `
-    INSERT INTO notifications (
-      id, series_id, event_id, type, title, message, data, dedupe_key
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    ON CONFLICT (dedupe_key) DO NOTHING
-  `;
+  // 🔥 GTWC short_name = GTWC
+  const usersRes = await db.query(
+    `
+    SELECT user_id
+    FROM user_preferences
+    WHERE $1 = ANY(followed_series)
+    `,
+    ["GTWC"],
+  );
 
-  await db.query(query, [
-    randomUUID(),
-    seriesId,
-    eventId,
-    type,
-    title,
-    message,
-    data,
-    dedupeKey,
-  ]);
+  const users = usersRes.rows;
+
+  for (const user of users) {
+    const userDedupeKey = `${user.user_id}-${dedupeKey}`;
+
+    await db.query(
+      `
+      INSERT INTO notifications (
+        id,
+        user_id,
+        series_id,
+        event_id,
+        type,
+        title,
+        message,
+        data,
+        dedupe_key
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (dedupe_key) DO NOTHING
+      `,
+      [
+        randomUUID(),
+        user.user_id,
+        seriesId,
+        eventId,
+        type,
+        title,
+        message,
+        data,
+        userDedupeKey,
+      ],
+    );
+  }
 }
 
 async function upsertGTWCSessions(event) {
@@ -103,13 +129,16 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
     // =========================
     // 🔔 CREATE NOTIFICATION
     // =========================
-    await createNotification({
+    await createNotificationsForUsers({
       seriesId,
       eventId: event.id,
       type: "event_updated",
 
-      title: "GTWC Schedule Updated",
-      message: `${event.event_name} schedule has been updated`,
+      // ✅ Normalized title
+      title: `${event.event_name} schedule updated`,
+
+      // ✅ Normalized message
+      message: `GTWC|${event.event_name}|sessions have been updated`,
 
       data: {
         old_hash: existingHash,

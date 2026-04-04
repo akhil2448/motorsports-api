@@ -22,27 +22,53 @@ function getTimezone(countryCode) {
 /**
  * 🔔 Notification helper
  */
-async function createNotification(payload) {
+async function createNotificationsForUsers(payload) {
   const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
 
-  const query = `
-    INSERT INTO notifications (
-      id, series_id, event_id, type, title, message, data, dedupe_key
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    ON CONFLICT (dedupe_key) DO NOTHING
-  `;
+  // 🔥 DTM short_name = DTM
+  const usersRes = await db.query(
+    `
+    SELECT user_id
+    FROM user_preferences
+    WHERE $1 = ANY(followed_series)
+    `,
+    ["DTM"],
+  );
 
-  await db.query(query, [
-    randomUUID(),
-    seriesId,
-    eventId,
-    type,
-    title,
-    message,
-    data,
-    dedupeKey,
-  ]);
+  const users = usersRes.rows;
+
+  for (const user of users) {
+    const userDedupeKey = `${user.user_id}-${dedupeKey}`;
+
+    await db.query(
+      `
+      INSERT INTO notifications (
+        id,
+        user_id,
+        series_id,
+        event_id,
+        type,
+        title,
+        message,
+        data,
+        dedupe_key
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (dedupe_key) DO NOTHING
+      `,
+      [
+        randomUUID(),
+        user.user_id,
+        seriesId,
+        eventId,
+        type,
+        title,
+        message,
+        data,
+        userDedupeKey,
+      ],
+    );
+  }
 }
 
 /**
@@ -216,19 +242,22 @@ async function updateDtmSessions() {
     // =========================
     // 🔔 CREATE NOTIFICATION
     // =========================
-    await createNotification({
+    await createNotificationsForUsers({
       seriesId: series_id,
       eventId: id,
       type: "schedule_released",
 
-      title: "DTM Schedule Released",
-      message: `${event.event_name} full schedule is now available`,
+      // ✅ Normalized title
+      title: `${event.event_name} schedule released`,
+
+      // ✅ Normalized message
+      message: `DTM|${event.event_name}|schedule has been released`,
 
       data: {
         sessions_count: insertedCount,
       },
 
-      dedupeKey: `dtm_event_${id}_schedule_released_v1`,
+      dedupeKey: `dtm_event_${id}_schedule_released`,
     });
 
     console.log("🔔 Notification created (schedule released)");

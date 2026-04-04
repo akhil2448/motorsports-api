@@ -16,27 +16,53 @@ const { findPdfUrl } = require("./wrcPdfService");
 /* NOTIFICATION HELPER                */
 /* ---------------------------------- */
 
-async function createNotification(payload) {
+async function createNotificationsForUsers(payload) {
   const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
 
-  const query = `
-    INSERT INTO notifications (
-      id, series_id, event_id, type, title, message, data, dedupe_key
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    ON CONFLICT (dedupe_key) DO NOTHING
-  `;
+  // 🔥 Get users subscribed to this series
+  const usersRes = await pool.query(
+    `
+    SELECT user_id
+    FROM user_preferences
+    WHERE $1 = ANY(followed_series)
+    `,
+    ["WRC"],
+  );
 
-  await pool.query(query, [
-    randomUUID(),
-    seriesId,
-    eventId,
-    type,
-    title,
-    message,
-    data,
-    dedupeKey,
-  ]);
+  const users = usersRes.rows;
+
+  for (const user of users) {
+    const userDedupeKey = `${user.user_id}-${dedupeKey}`;
+
+    await pool.query(
+      `
+      INSERT INTO notifications (
+        id,
+        user_id,
+        series_id,
+        event_id,
+        type,
+        title,
+        message,
+        data,
+        dedupe_key
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (dedupe_key) DO NOTHING
+      `,
+      [
+        randomUUID(),
+        user.user_id,
+        seriesId,
+        eventId,
+        type,
+        title,
+        message,
+        data,
+        userDedupeKey,
+      ],
+    );
+  }
 }
 
 /* ---------------------------------- */
@@ -205,13 +231,16 @@ async function ingestLatestPdfStages() {
     // =========================
     // 🔔 CREATE NOTIFICATION
     // =========================
-    await createNotification({
+    await createNotificationsForUsers({
       seriesId: event.series_id,
       eventId: event.id,
       type: "event_updated",
 
-      title: "WRC Schedule Updated",
-      message: `${event.event_name} stages have been updated`,
+      // ✅ Normalized title
+      title: `${event.event_name} schedule updated`,
+
+      // ✅ Normalized message
+      message: `WRC|${event.event_name}|stages has been updated`,
 
       data: {
         old_hash: event.pdf_hash,

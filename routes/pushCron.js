@@ -7,6 +7,13 @@ const {
 } = require("../services/pushService");
 
 router.post("/run", async (req, res) => {
+  // ✅ ADD THIS BLOCK HERE (top of handler)
+  const SECRET = process.env.CRON_SECRET;
+
+  if (req.headers["x-cron-secret"] !== SECRET) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
   try {
     const notifications = await getUnsentNotifications();
 

@@ -51,8 +51,13 @@ function App() {
   // ✅ ADD HERE
   async function requestPushPermission() {
     try {
-      // close immediately
       setShowPermissionUI(false);
+
+      // ✅ ADD THIS BLOCK
+      if (typeof Notification === "undefined") {
+        console.log("Notifications not supported");
+        return;
+      }
 
       const permission = await Notification.requestPermission();
 
@@ -132,7 +137,11 @@ function App() {
 
   // ALLOW NOTIFICATIONS FOR NEW DEVICE/USER
   useEffect(() => {
-    if (!showSplash && Notification.permission === "default") {
+    if (
+      !showSplash &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "default"
+    ) {
       setShowPermissionUI(true);
     }
   }, [showSplash]);

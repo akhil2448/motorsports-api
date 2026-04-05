@@ -30,6 +30,45 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
+async function requestPushPermission() {
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      console.log("Permission denied");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(
+          "BAGut_ghSPJVhgPw3aFXKp6Y-tqQ4umOYV4zHpXupHamgF1Uxz72-bbnzx0eRe9vLauW7TtPTlt0Bdh3lYfue8Y",
+        ),
+      });
+    }
+
+    const userId = localStorage.getItem("user_id");
+
+    await fetch(`${API_BASE}/push/subscribe`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-id": userId,
+      },
+      body: JSON.stringify(subscription),
+    });
+
+    console.log("Push enabled");
+  } catch (err) {
+    console.error("Push setup error:", err);
+  }
+}
+
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState("events");
@@ -45,6 +84,8 @@ function App() {
 
   const [preferences, setPreferences] = useState(null);
   const [loadingPreferences, setLoadingPreferences] = useState(true);
+
+  const [showPermissionUI, setShowPermissionUI] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -83,6 +124,13 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // ALLOW NOTIFICATIONS FOR NEW DEVICE/USER
+  useEffect(() => {
+    if (Notification.permission === "default") {
+      setShowPermissionUI(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -188,53 +236,6 @@ function App() {
     localStorage.setItem("notifications", JSON.stringify(notifications));
   }, [notifications]);
 
-  useEffect(() => {
-    async function setupPush() {
-      try {
-        const permission = await Notification.requestPermission();
-
-        if (permission !== "granted") {
-          console.log("Push permission denied");
-          return;
-        }
-
-        const registration = await navigator.serviceWorker.ready;
-
-        let subscription = await registration.pushManager.getSubscription();
-
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(
-              "BAGut_ghSPJVhgPw3aFXKp6Y-tqQ4umOYV4zHpXupHamgF1Uxz72-bbnzx0eRe9vLauW7TtPTlt0Bdh3lYfue8Y",
-            ),
-          });
-        }
-
-        const userId = localStorage.getItem("user_id");
-
-        await fetch(`${API_BASE}/push/subscribe`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-id": userId,
-          },
-          body: JSON.stringify(subscription),
-        });
-
-        // console.log("Push subscribed:", subscription);
-      } catch (err) {
-        console.error("Push setup error:", err);
-      }
-    }
-
-    const userId = localStorage.getItem("user_id");
-
-    if (userId) {
-      setupPush();
-    }
-  }, []);
-
   return (
     <>
       <SplashScreen show={showSplash} />
@@ -296,6 +297,23 @@ function App() {
           unreadCount={unreadCount}
         />
       </div>
+
+      {showPermissionUI && (
+        <div className="overlay">
+          <div className="overlay-card">
+            <div className="overlay-text">
+              Enable notifications for race alerts
+            </div>
+
+            <button
+              className="done-btn"
+              style={{ marginTop: "16px" }}
+              onClick={requestPushPermission}>
+              Allow Notifications
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

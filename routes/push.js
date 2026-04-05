@@ -35,9 +35,9 @@ router.post("/subscribe", async (req, res) => {
       )
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (endpoint)
-DO UPDATE SET
-  user_id = EXCLUDED.user_id,
-  subscribed_at = now()
+      DO UPDATE SET
+      user_id = EXCLUDED.user_id,   
+      subscribed_at = now()
       `,
       [userId, endpoint, keys.p256dh, keys.auth],
     );

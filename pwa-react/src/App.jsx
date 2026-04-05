@@ -222,7 +222,7 @@ function App() {
           body: JSON.stringify(subscription),
         });
 
-        console.log("Push subscribed:", subscription);
+        // console.log("Push subscribed:", subscription);
       } catch (err) {
         console.error("Push setup error:", err);
       }

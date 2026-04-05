@@ -9,12 +9,18 @@ export default function Profile({ preferences, setPreferences, loading }) {
   const [notifyBefore, setNotifyBefore] = useState(null);
   const [eventStart, setEventStart] = useState(null);
   const [isEditingTime, setIsEditingTime] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const toggleSeries = (series) => {
-    setEnabledSeries((prev) => ({
-      ...prev,
-      [series]: !prev[series],
-    }));
+    setEnabledSeries((prev) => {
+      const updated = {
+        ...prev,
+        [series]: !prev[series],
+      };
+      setIsDirty(true);
+      return updated;
+    });
   };
 
   if (loading || !preferences) {
@@ -90,7 +96,10 @@ export default function Profile({ preferences, setPreferences, loading }) {
             <input
               type="checkbox"
               checked={eventStart}
-              onChange={() => setEventStart((prev) => !prev)}
+              onChange={() => {
+                setEventStart((prev) => !prev);
+                setIsDirty(true);
+              }}
             />
             <span className="slider"></span>
           </label>
@@ -101,6 +110,7 @@ export default function Profile({ preferences, setPreferences, loading }) {
       <div className="section">
         <button
           className="done-btn"
+          disabled={!isDirty}
           onClick={async () => {
             try {
               const followedSeries = Object.keys(enabledSeries).filter(
@@ -117,8 +127,12 @@ export default function Profile({ preferences, setPreferences, loading }) {
               const updated = await saveUserPreferences(payload);
 
               setPreferences(updated);
+              setIsDirty(false);
 
-              console.log("✅ Preferences saved");
+              setShowToast(true);
+              setTimeout(() => setShowToast(false), 2000);
+
+              // console.log("✅ Preferences saved");
             } catch (err) {
               console.error("Save failed", err);
             }
@@ -133,7 +147,10 @@ export default function Profile({ preferences, setPreferences, loading }) {
           <div className="picker-modal" onClick={(e) => e.stopPropagation()}>
             <WheelPicker
               value={notifyBefore}
-              onChange={setNotifyBefore}
+              onChange={(val) => {
+                setNotifyBefore(val);
+                setIsDirty(true);
+              }}
               options={[5, 10, 15, 30, 45, 60]}
             />
 
@@ -145,6 +162,14 @@ export default function Profile({ preferences, setPreferences, loading }) {
               }}>
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {showToast && (
+        <div className="overlay">
+          <div className="overlay-card">
+            <div className="overlay-text">Preferences Saved</div>
           </div>
         </div>
       )}

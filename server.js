@@ -14,6 +14,8 @@ const notificationsRoute = require("./routes/notifications");
 const usersRoute = require("./routes/users");
 const userPreferencesRoute = require("./routes/userPreferences");
 const cronRoutes = require("./routes/cron");
+const pushRoutes = require("./routes/push");
+const pushCronRoutes = require("./routes/pushCron");
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use("/notifications", notificationsRoute);
 app.use("/users", usersRoute);
 app.use("/user-preferences", userPreferencesRoute);
 app.use("/api/cron", cronRoutes);
+app.use("/push", pushRoutes);
+app.use("/push-cron", pushCronRoutes);
 
 /* ✅ 404 HANDLER */
 app.use((req, res) => {

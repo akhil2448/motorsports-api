@@ -22,6 +22,14 @@ import { fetchCalendar } from "./services/calendarService";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState("events");
@@ -37,6 +45,15 @@ function App() {
 
   const [preferences, setPreferences] = useState(null);
   const [loadingPreferences, setLoadingPreferences] = useState(true);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => console.log("Service Worker registered"))
+        .catch((err) => console.error("SW registration failed:", err));
+    }
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -58,7 +75,7 @@ function App() {
 
   useEffect(() => {
     if (preferences) {
-      console.log("Preferences updated:", preferences);
+      // console.log("Preferences updated:", preferences);
     }
   }, [preferences]);
 
@@ -170,6 +187,53 @@ function App() {
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));
   }, [notifications]);
+
+  useEffect(() => {
+    async function setupPush() {
+      try {
+        const permission = await Notification.requestPermission();
+
+        if (permission !== "granted") {
+          console.log("Push permission denied");
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+
+        let subscription = await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(
+              "BAGut_ghSPJVhgPw3aFXKp6Y-tqQ4umOYV4zHpXupHamgF1Uxz72-bbnzx0eRe9vLauW7TtPTlt0Bdh3lYfue8Y",
+            ),
+          });
+        }
+
+        const userId = localStorage.getItem("user_id");
+
+        await fetch(`${API_BASE}/push/subscribe`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": userId,
+          },
+          body: JSON.stringify(subscription),
+        });
+
+        console.log("Push subscribed:", subscription);
+      } catch (err) {
+        console.error("Push setup error:", err);
+      }
+    }
+
+    const userId = localStorage.getItem("user_id");
+
+    if (userId) {
+      setupPush();
+    }
+  }, []);
 
   return (
     <>

@@ -2,6 +2,17 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db/pool");
 
+async function ensureUserExists(userId) {
+  await db.query(
+    `
+    INSERT INTO users (id)
+    VALUES ($1)
+    ON CONFLICT (id) DO NOTHING
+    `,
+    [userId],
+  );
+}
+
 /**
  * GET /user-preferences/:userId
  * Fetch user preferences
@@ -53,6 +64,8 @@ router.post("/", async (req, res) => {
       notify_before_minutes,
       notify_event_start,
     } = req.body;
+
+    await ensureUserExists(user_id);
 
     const result = await db.query(
       `

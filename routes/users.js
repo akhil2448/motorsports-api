@@ -8,16 +8,23 @@ const db = require("../db/pool");
  */
 router.post("/", async (req, res) => {
   try {
-    const result = await db.query(
+    let { user_id } = req.body;
+
+    // ✅ If no user_id provided → generate one
+    if (!user_id) {
+      user_id = crypto.randomUUID();
+    }
+
+    await db.query(
       `
-      INSERT INTO users DEFAULT VALUES
-      RETURNING id
+      INSERT INTO users (id)
+      VALUES ($1)
+      ON CONFLICT (id) DO NOTHING
       `,
+      [user_id],
     );
 
-    return res.json({
-      user_id: result.rows[0].id,
-    });
+    return res.json({ user_id });
   } catch (err) {
     console.error("Create user error:", err.message);
     return res.status(500).json({

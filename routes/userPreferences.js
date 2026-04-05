@@ -21,6 +21,8 @@ router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
+    await ensureUserExists(userId);
+
     let result = await db.query(
       `SELECT * FROM user_preferences WHERE user_id = $1`,
       [userId],

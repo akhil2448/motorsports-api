@@ -8,21 +8,33 @@ export function getOrCreateUser() {
   userPromise = (async () => {
     let userId = localStorage.getItem("user_id");
 
-    if (userId) return userId;
+    // ✅ If exists → reuse it
+    if (userId) {
+      await fetch(`${API_BASE}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_id: userId }),
+      });
 
-    const res = await fetch(`${API_BASE}/users`, {
-      method: "POST",
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to create user");
+      return userId;
     }
 
-    const data = await res.json();
+    // ✅ If not → create new
+    userId = crypto.randomUUID();
 
-    localStorage.setItem("user_id", data.user_id);
+    await fetch(`${API_BASE}/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: userId }),
+    });
 
-    return data.user_id;
+    localStorage.setItem("user_id", userId);
+
+    return userId;
   })();
 
   return userPromise;

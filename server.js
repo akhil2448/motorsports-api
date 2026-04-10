@@ -19,7 +19,16 @@ const pushCronRoutes = require("./routes/pushCron");
 
 const app = express();
 
-app.use(cors());
+const cors = require("cors");
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://lightsout-notify.vercel.app"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }),
+);
+app.options("*", cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {

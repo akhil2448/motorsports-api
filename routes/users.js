@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const router = express.Router();
 const db = require("../db/pool");
 
@@ -8,7 +9,7 @@ const db = require("../db/pool");
  */
 router.post("/", async (req, res) => {
   try {
-    let { user_id } = req.body;
+    let user_id = req.body?.user_id;
 
     // ✅ If no user_id provided → generate one
     if (!user_id) {

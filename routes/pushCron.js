@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const db = require("../db/pool");
 
 const {
   getUnsentNotifications,
@@ -20,18 +21,22 @@ router.post("/run", async (req, res) => {
     console.log("Processing notifications:", notifications.length);
 
     for (const notification of notifications) {
-      if (!notification.user_id) {
-        console.log("Skipping invalid notification:", notification.id);
+      try {
+        if (!notification.user_id) {
+          console.log("Skipping invalid notification:", notification.id);
 
-        await db.query(
-          `UPDATE notifications SET is_sent = true WHERE id = $1`,
-          [notification.id],
-        );
+          await db.query(
+            `UPDATE notifications SET is_sent = true WHERE id = $1`,
+            [notification.id],
+          );
 
-        continue;
+          continue;
+        }
+
+        await sendPushForNotification(notification);
+      } catch (err) {
+        console.error("Push processing error:", err);
       }
-
-      await sendPushForNotification(notification);
     }
 
     res.json({ success: true, processed: notifications.length });

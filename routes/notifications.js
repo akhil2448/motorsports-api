@@ -67,7 +67,7 @@ router.get("/", async (req, res) => {
       server_time: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("Fetch notifications error:", err.message);
+    console.error("Fetch notifications error:", err);
     return res.status(500).json({
       error: "Internal server error",
     });

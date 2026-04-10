@@ -20,6 +20,17 @@ router.post("/run", async (req, res) => {
     console.log("Processing notifications:", notifications.length);
 
     for (const notification of notifications) {
+      if (!notification.user_id) {
+        console.log("Skipping invalid notification:", notification.id);
+
+        await db.query(
+          `UPDATE notifications SET is_sent = true WHERE id = $1`,
+          [notification.id],
+        );
+
+        continue;
+      }
+
       await sendPushForNotification(notification);
     }
 

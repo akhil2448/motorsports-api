@@ -21,11 +21,16 @@ router.get("/run-notifications", async (req, res) => {
 
     // ✅ Fetch upcoming units (7 days for testing)
     const { rows: units } = await pool.query(`
-      SELECT *
-      FROM units_view
-      WHERE start_time >= NOW()
-      AND start_time <= NOW() + INTERVAL '7 days'
-      ORDER BY start_time ASC
+      SELECT
+      uv.*,
+      e.name AS event_name,
+      s.short_name AS series
+    FROM units_view uv
+    JOIN events e ON uv.event_id = e.id
+    JOIN series s ON e.series_id = s.id
+    WHERE uv.start_time >= NOW()
+    AND uv.start_time <= NOW() + INTERVAL '7 days'
+    ORDER BY uv.start_time ASC
     `);
 
     console.log(`👥 Users: ${preferences.length}`);

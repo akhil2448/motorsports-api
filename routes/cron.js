@@ -31,6 +31,8 @@ router.get("/run-notifications", async (req, res) => {
     console.log(`👥 Users: ${preferences.length}`);
     console.log(`🏁 Units fetched: ${units.length}`);
 
+    console.log("UNITS FULL SAMPLE:", units[0]);
+
     for (const user of preferences) {
       const {
         user_id,

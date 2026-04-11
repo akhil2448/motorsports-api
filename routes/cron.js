@@ -23,7 +23,7 @@ router.get("/run-notifications", async (req, res) => {
     const { rows: units } = await pool.query(`
       SELECT
       uv.*,
-      e.name AS event_name,
+      e.event_name,
       s.short_name AS series
     FROM units_view uv
     JOIN events e ON uv.event_id = e.id

@@ -39,10 +39,35 @@ router.get("/run-notifications", async (req, res) => {
         notify_event_start,
       } = user;
 
+      console.log("USER PREF DEBUG:", {
+        user_id,
+        followed_series,
+        type: typeof followed_series,
+        isArray: Array.isArray(followed_series),
+      });
+
+      if (units.length > 0) {
+        console.log(
+          "UNIT SERIES SAMPLE:",
+          units.slice(0, 5).map((u) => u.series),
+        );
+      }
+
       // ✅ Filter by series
-      const userUnits = units.filter((unit) =>
-        followed_series.includes(unit.series),
-      );
+      const userUnits = units.filter((unit) => {
+        const match = followed_series?.includes(unit.series);
+
+        if (!match) {
+          console.log(
+            `NO MATCH → user ${user_id} | followed:`,
+            followed_series,
+            "| unit.series:",
+            unit.series,
+          );
+        }
+
+        return match;
+      });
 
       // ✅ Time-based filtering
       const eligibleUnits = userUnits.filter((unit) => {

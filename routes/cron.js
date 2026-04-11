@@ -60,9 +60,14 @@ router.get("/run-notifications", async (req, res) => {
         );
       }
 
-      // ✅ Filter by series
+      // ✅ Filter by series (normalized)
+      const normalizedFollowed = (followed_series || []).map((series) =>
+        series.trim().toLowerCase(),
+      );
+
       const userUnits = units.filter((unit) => {
-        const match = followed_series?.includes(unit.series);
+        const unitSeries = unit.series?.trim().toLowerCase();
+        const match = normalizedFollowed.includes(unitSeries);
 
         if (!match) {
           console.log(

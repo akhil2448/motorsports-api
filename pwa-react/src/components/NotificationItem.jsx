@@ -41,7 +41,7 @@ export default function NotificationItem({
   setUnreadCount,
 }) {
   const ref = useRef(null);
-  const isSeen = n.isRead;
+  const isSeen = n.is_read;
 
   const [isVisible, setIsVisible] = useState(false);
 
@@ -70,7 +70,7 @@ export default function NotificationItem({
       // ✅ update global state ONCE
       setNotifications((prev) =>
         prev.map((item) =>
-          item.id === n.id ? { ...item, isRead: true } : item,
+          item.id === n.id ? { ...item, is_read: true } : item,
         ),
       );
 

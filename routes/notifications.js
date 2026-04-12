@@ -88,15 +88,23 @@ router.patch("/:id/read", async (req, res) => {
       });
     }
 
-    await db.query(
+    console.log("MARK READ REQUEST:", {
+      id,
+      userId,
+    });
+
+    const result = await db.query(
       `
-      UPDATE notifications
-      SET is_read = true
-      WHERE id = $1
-      AND user_id = $2
-      `,
+  UPDATE notifications
+  SET is_read = true
+  WHERE id = $1
+  AND user_id = $2
+  RETURNING id, is_read
+  `,
       [id, userId],
     );
+
+    console.log("MARK READ RESULT:", result.rowCount, result.rows[0]);
 
     return res.json({ success: true });
   } catch (err) {

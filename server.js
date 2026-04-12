@@ -22,7 +22,8 @@ const app = express();
 app.use(
   cors({
     origin: ["http://localhost:5173", "https://lightsout-notify.vercel.app"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-user-id"],
     credentials: true,
   }),
 );

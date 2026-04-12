@@ -88,11 +88,6 @@ router.patch("/:id/read", async (req, res) => {
       });
     }
 
-    console.log("MARK READ REQUEST:", {
-      id,
-      userId,
-    });
-
     const result = await db.query(
       `
   UPDATE notifications
@@ -103,8 +98,6 @@ router.patch("/:id/read", async (req, res) => {
   `,
       [id, userId],
     );
-
-    console.log("MARK READ RESULT:", result.rowCount, result.rows[0]);
 
     return res.json({ success: true });
   } catch (err) {

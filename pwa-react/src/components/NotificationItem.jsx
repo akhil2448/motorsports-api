@@ -67,8 +67,6 @@ export default function NotificationItem({
     if (!isVisible || isSeen) return;
 
     const timer = setTimeout(() => {
-      console.log("MARKING READ:", n.id);
-
       // ✅ update global state ONCE
       setNotifications((prev) =>
         prev.map((item) =>
@@ -84,10 +82,7 @@ export default function NotificationItem({
         headers: {
           "x-user-id": localStorage.getItem("user_id"),
         },
-      })
-        .then((res) => res.json())
-        .then((data) => console.log("PATCH SUCCESS:", data))
-        .catch((err) => console.error("PATCH FAILED:", err));
+      });
     }, 1200);
 
     return () => clearTimeout(timer);

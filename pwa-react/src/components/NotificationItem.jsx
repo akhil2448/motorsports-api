@@ -117,7 +117,6 @@ export default function NotificationItem({
         <span className="time">{getTimeAgo(n.created_at)}</span>
       </div>
 
-      <div className="notification-title">{n.title}</div>
       {(() => {
         if (!n.message) return null;
 

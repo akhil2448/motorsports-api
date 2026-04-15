@@ -33,10 +33,23 @@ async function sendPushForNotification(notification) {
   }
 
   // 2. Prepare payload
+  let pushBody = notification.message || "New update available";
+
+  // Format structured messages nicely
+  if (pushBody.includes("|")) {
+    const parts = pushBody.split("|");
+
+    if (parts.length >= 3) {
+      const [series, event, detail] = parts;
+
+      pushBody = `${series} • ${event}\n${detail}`;
+    }
+  }
+
   const payload = JSON.stringify({
     notification: {
       title: notification.title || "Race Update",
-      body: notification.message || "New update available",
+      body: pushBody,
     },
   });
 

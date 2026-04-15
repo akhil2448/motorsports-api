@@ -164,31 +164,30 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   // }
 
   const formatDateRange = (start, end) => {
-    const startDay = start.toLocaleDateString("en-US", {
-      weekday: "long",
+    const month = start.toLocaleDateString("en-US", {
+      month: "short",
     });
 
-    const startDateStr = start.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
+    const startDay = start.toLocaleDateString("en-US", {
+      weekday: "short",
     });
 
     const endDay = end.toLocaleDateString("en-US", {
-      weekday: "long",
+      weekday: "short",
     });
 
-    const endDateStr = end.toLocaleDateString("en-US", {
-      day: "numeric",
-    });
+    const startDateNum = start.getDate();
+    const endDateNum = end.getDate();
 
     if (start.getMonth() === end.getMonth()) {
-      return `${startDay}, ${startDateStr} - ${endDay}, ${endDateStr}`;
+      return `${month} • ${startDay} ${startDateNum} – ${endDay} ${endDateNum}`;
     }
 
-    return `${startDay}, ${startDateStr} - ${endDay}, ${end.toLocaleDateString(
-      "en-US",
-      { month: "short", day: "numeric" },
-    )}`;
+    const endMonth = end.toLocaleDateString("en-US", {
+      month: "short",
+    });
+
+    return `${month} ${startDay} ${startDateNum} – ${endMonth} ${endDay} ${endDateNum}`;
   };
 
   const formattedDate =

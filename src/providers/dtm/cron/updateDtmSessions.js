@@ -247,11 +247,11 @@ async function updateDtmSessions() {
       eventId: id,
       type: "schedule_released",
 
-      // ✅ Normalized title
-      title: `${event.event_name} schedule released`,
+      // ✅ Short action-based title
+      title: "Schedule released",
 
-      // ✅ Normalized message
-      message: `DTM|${event.event_name}|schedule has been released`,
+      // ✅ Structured message for app + push formatting
+      message: `DTM|${event.event_name}|schedule is now live`,
 
       data: {
         sessions_count: insertedCount,

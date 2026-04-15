@@ -236,11 +236,11 @@ async function ingestLatestPdfStages() {
       eventId: event.id,
       type: "event_updated",
 
-      // ✅ Normalized title
-      title: `${event.event_name} schedule updated`,
+      // ✅ Short action-based title
+      title: "Schedule updated",
 
-      // ✅ Normalized message
-      message: `WRC|${event.event_name}|stages has been updated`,
+      // ✅ Structured message for app + push
+      message: `WRC|${event.event_name}|stages have been updated`,
 
       data: {
         old_hash: event.pdf_hash,

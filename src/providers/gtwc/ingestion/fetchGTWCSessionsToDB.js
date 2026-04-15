@@ -134,10 +134,10 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       eventId: event.id,
       type: "event_updated",
 
-      // ✅ Normalized title
-      title: `${event.event_name} schedule updated`,
+      // ✅ Short action-based title
+      title: "Schedule updated",
 
-      // ✅ Normalized message
+      // ✅ Structured message for app + push
       message: `GTWC|${event.event_name}|sessions have been updated`,
 
       data: {

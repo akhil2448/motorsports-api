@@ -131,8 +131,8 @@ export default function NotificationItem({
 
         return (
           <div className="notification-message">
-            <span className="message-event">{event}</span>{" "}
-            <span className="message-detail">{detail}</span>
+            <div className="message-event">{event}</div>
+            <div className="message-detail">{detail}</div>
           </div>
         );
       })()}

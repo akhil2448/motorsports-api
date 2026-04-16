@@ -191,6 +191,7 @@ input:checked + .slider::before {
 
 /* overlay */
 .picker-overlay {
+  min-height: 100dvh;
   z-index: 99999; /* higher than header/nav */
 
   position: fixed;

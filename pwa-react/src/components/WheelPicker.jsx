@@ -33,9 +33,11 @@ export default function WheelPicker({ value, onChange, options }) {
 
     const index = options.indexOf(value);
 
-    container.scrollTo({
-      top: index * itemHeight,
-      behavior: "instant",
+    requestAnimationFrame(() => {
+      container.scrollTo({
+        top: index * itemHeight,
+        behavior: "auto",
+      });
     });
   }, [value, options]);
 

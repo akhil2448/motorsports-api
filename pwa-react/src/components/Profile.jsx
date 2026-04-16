@@ -42,6 +42,24 @@ export default function Profile({
     setEventStart(preferences.notify_event_start);
   }, [preferences, enabledSeries]);
 
+  useEffect(() => {
+    if (isEditingTime) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [isEditingTime]);
+
   const toggleSeries = (series) => {
     setEnabledSeries((prev) => {
       const updated = {
@@ -74,7 +92,7 @@ export default function Profile({
                 "Enable alerts for schedule updates and session reminders"}
               {pushStatus === "granted" && "Push notifications enabled"}
               {pushStatus === "denied" &&
-                "Enable notifications in Safari / browser settings"}
+                "Notifications are blocked. Re-enable in iPhone Settings > Safari > Notifications or Website Settings."}
               {pushStatus === "unsubscribed" && "Reconnect notifications"}
             </div>
           </div>

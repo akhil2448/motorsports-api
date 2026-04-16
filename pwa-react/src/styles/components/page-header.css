@@ -2,6 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  overflow: hidden;
 
   padding: calc(env(safe-area-inset-top) + 10px) 16px 14px;
 
@@ -84,7 +85,7 @@
   font-weight: 700;
   margin: 6px 0 4px;
 
-  letter-spacing: 0.4px;
+  letter-spacing: 0.8px;
 
   text-shadow:
     0 0 18px rgba(255, 255, 255, 0.08),
@@ -111,9 +112,6 @@
 .page-header.scrolled .header-title {
   font-size: 20px;
   margin: 2px 0;
-}
-.page-header h1 {
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
 }
 
 /* subtle chequered pattern */
@@ -153,8 +151,7 @@
   position: relative;
   z-index: 1;
 
-  font-size: 22px;
-  font-weight: 600;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
 }
 
 /* inner pill */

@@ -261,48 +261,52 @@ function App() {
           showToggle={activeTab === "calendar"}
         />
 
-        {activeTab === "events" && (
-          <>
-            {loadingEvents && <div className="status">Loading events...</div>}
+        <div key={activeTab} className="page-content">
+          {activeTab === "events" && (
+            <>
+              {loadingEvents && <div className="status">Loading events...</div>}
 
-            {eventsError && (
-              <div className="status error">Failed to load events</div>
-            )}
+              {eventsError && (
+                <div className="status error">Failed to load events</div>
+              )}
 
-            {!loadingEvents &&
-              !eventsError &&
-              events.map((event) => (
-                <SeriesCard
-                  key={event.id}
-                  event={event}
-                  expanded={event.expanded}
-                  onToggle={() => handleToggleEvent(event.id)}
-                />
-              ))}
-          </>
-        )}
+              {!loadingEvents &&
+                !eventsError &&
+                events.map((event) => (
+                  <SeriesCard
+                    key={event.id}
+                    event={event}
+                    expanded={event.expanded}
+                    onToggle={() => handleToggleEvent(event.id)}
+                  />
+                ))}
+            </>
+          )}
 
-        {activeTab === "calendar" && (
-          <CalendarPage
-            useLocalTime={useLocalTime}
-            calendarData={calendarData}
-            loading={loadingCalendar}
-          />
-        )}
-        {activeTab === "notifications" && (
-          <NotificationsScreen
-            notifications={notifications}
-            setNotifications={setNotifications}
-            setUnreadCount={setUnreadCount}
-          />
-        )}
-        {activeTab === "profile" && (
-          <Profile
-            preferences={preferences}
-            setPreferences={setPreferences}
-            loading={loadingPreferences}
-          />
-        )}
+          {activeTab === "calendar" && (
+            <CalendarPage
+              useLocalTime={useLocalTime}
+              calendarData={calendarData}
+              loading={loadingCalendar}
+            />
+          )}
+
+          {activeTab === "notifications" && (
+            <NotificationsScreen
+              notifications={notifications}
+              setNotifications={setNotifications}
+              setUnreadCount={setUnreadCount}
+            />
+          )}
+
+          {activeTab === "profile" && (
+            <Profile
+              preferences={preferences}
+              setPreferences={setPreferences}
+              loading={loadingPreferences}
+            />
+          )}
+        </div>
 
         <BottomNav
           activeTab={activeTab}

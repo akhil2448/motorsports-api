@@ -261,7 +261,7 @@ function App() {
           showToggle={activeTab === "calendar"}
         />
 
-        <div key={activeTab} className="page-content">
+        <div key={activeTab} className={`page-content page-${activeTab}`}>
           {activeTab === "events" && (
             <>
               {loadingEvents && <div className="status">Loading events...</div>}

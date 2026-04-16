@@ -7,10 +7,10 @@
 .page-content {
   min-height: calc(100vh - 140px);
 
-  animation: pageFadeSlide 320ms cubic-bezier(0.22, 1, 0.36, 1);
-  animation-fill-mode: both;
+  opacity: 0;
+  transform: translateY(18px);
 
-  will-change: opacity, transform;
+  animation: pageFadeSlide 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -19,7 +19,7 @@
 @keyframes pageFadeSlide {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(18px);
   }
 
   to {

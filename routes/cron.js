@@ -29,7 +29,7 @@ router.get("/run-notifications", async (req, res) => {
     JOIN events e ON uv.event_id = e.id
     JOIN series s ON e.series_id = s.id
     WHERE uv.start_time >= NOW()
-    AND uv.start_time <= NOW() + INTERVAL '7 days'
+    AND uv.start_time <= NOW() + INTERVAL '2 days'
     ORDER BY uv.start_time ASC
     `);
 

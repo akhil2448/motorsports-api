@@ -1,6 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-let userPromise = null; // 🔥 global singleton
+let userPromise = null;
 
 export function getOrCreateUser() {
   if (userPromise) return userPromise;
@@ -8,7 +8,7 @@ export function getOrCreateUser() {
   userPromise = (async () => {
     let userId = localStorage.getItem("user_id");
 
-    // ✅ If exists → reuse it
+    // existing user
     if (userId) {
       await fetch(`${API_BASE}/users`, {
         method: "POST",
@@ -21,18 +21,25 @@ export function getOrCreateUser() {
       return userId;
     }
 
-    // ✅ If not → create new
+    // 🔥 generate FIRST and save immediately
     userId = crypto.randomUUID();
 
-    await fetch(`${API_BASE}/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ user_id: userId }),
-    });
-
     localStorage.setItem("user_id", userId);
+
+    try {
+      await fetch(`${API_BASE}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_id: userId }),
+      });
+    } catch (err) {
+      console.error("User bootstrap failed:", err);
+
+      // optional rollback:
+      // localStorage.removeItem("user_id");
+    }
 
     return userId;
   })();

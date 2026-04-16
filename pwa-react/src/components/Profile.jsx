@@ -1,16 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import WheelPicker from "./WheelPicker";
 import "../styles/components/profile.css";
 
 import { saveUserPreferences } from "../services/userPreferencesService";
 
-export default function Profile({ preferences, setPreferences, loading }) {
+export default function Profile({
+  preferences,
+  setPreferences,
+  loading,
+  pushStatus,
+  enablePushNotifications,
+}) {
   const [enabledSeries, setEnabledSeries] = useState(null);
   const [notifyBefore, setNotifyBefore] = useState(null);
   const [eventStart, setEventStart] = useState(null);
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    if (!preferences || enabledSeries !== null) return;
+
+    const base = {
+      F1: false,
+      MotoGP: false,
+      WRC: false,
+      IndyCar: false,
+      DTM: false,
+      GTWC: false,
+    };
+
+    preferences.followed_series.forEach((s) => {
+      if (Object.prototype.hasOwnProperty.call(base, s)) {
+        base[s] = true;
+      }
+    });
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEnabledSeries(base);
+    setNotifyBefore(preferences.notify_before_minutes);
+    setEventStart(preferences.notify_event_start);
+  }, [preferences, enabledSeries]);
 
   const toggleSeries = (series) => {
     setEnabledSeries((prev) => {
@@ -27,31 +57,42 @@ export default function Profile({ preferences, setPreferences, loading }) {
     return <div className="status">Loading preferences...</div>;
   }
 
-  if (enabledSeries === null) {
-    const base = {
-      F1: false,
-      MotoGP: false,
-      WRC: false,
-      IndyCar: false,
-      DTM: false,
-      GTWC: false,
-    };
-
-    preferences.followed_series.forEach((s) => {
-      if (Object.prototype.hasOwnProperty.call(base, s)) {
-        base[s] = true;
-      }
-    });
-
-    setEnabledSeries(base);
-    setNotifyBefore(preferences.notify_before_minutes);
-    setEventStart(preferences.notify_event_start);
-  }
-
   if (!enabledSeries) return null;
 
   return (
     <div className="profile-container">
+      {/* PUSH NOTIFICATIONS */}
+      <div className="section">
+        <div className="section-title">Push Notifications</div>
+
+        <div className="row push-row">
+          <div>
+            <div className="push-title">Race Alerts</div>
+            <div className="push-subtext">
+              {pushStatus === "unsupported" && "Not supported on this device"}
+              {pushStatus === "default" &&
+                "Enable alerts for schedule updates and session reminders"}
+              {pushStatus === "granted" && "Push notifications enabled"}
+              {pushStatus === "denied" &&
+                "Enable notifications in Safari / browser settings"}
+              {pushStatus === "unsubscribed" && "Reconnect notifications"}
+            </div>
+          </div>
+
+          {(pushStatus === "default" || pushStatus === "unsubscribed") && (
+            <button
+              className="push-enable-btn"
+              onClick={enablePushNotifications}>
+              Enable
+            </button>
+          )}
+
+          {pushStatus === "granted" && (
+            <div className="push-enabled-pill">Enabled</div>
+          )}
+        </div>
+      </div>
+
       {/* NOTIFICATIONS */}
       <div className="section">
         <div className="section-title">Notifications</div>

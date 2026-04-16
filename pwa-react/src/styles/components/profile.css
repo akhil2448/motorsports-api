@@ -29,6 +29,56 @@
   margin-bottom: 10px;
 }
 
+.push-row {
+  align-items: center;
+  gap: 12px;
+}
+
+.push-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.push-subtext {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  max-width: 220px;
+}
+
+.push-enable-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+
+  background: linear-gradient(180deg, #0a84ff, #0066ff);
+  color: white;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  box-shadow:
+    0 4px 12px rgba(10, 132, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.push-enable-btn:active {
+  transform: scale(0.96);
+}
+
+.push-enabled-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+
+  background: rgba(52, 199, 89, 0.18);
+  color: #34c759;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .row {
   display: flex;
   justify-content: space-between;

@@ -22,14 +22,6 @@ import { fetchCalendar } from "./services/calendarService";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-
-  const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-}
-
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState("events");
@@ -45,56 +37,7 @@ function App() {
 
   const [preferences, setPreferences] = useState(null);
   const [loadingPreferences, setLoadingPreferences] = useState(true);
-
-  const [showPermissionUI, setShowPermissionUI] = useState(false);
-
-  // ✅ ADD HERE
-  async function requestPushPermission() {
-    try {
-      setShowPermissionUI(false);
-
-      // ✅ ADD THIS BLOCK
-      if (typeof Notification === "undefined") {
-        console.log("Notifications not supported");
-        return;
-      }
-
-      const permission = await Notification.requestPermission();
-
-      if (permission !== "granted") {
-        console.log("Permission denied");
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
-
-      let subscription = await registration.pushManager.getSubscription();
-
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            "BAGut_ghSPJVhgPw3aFXKp6Y-tqQ4umOYV4zHpXupHamgF1Uxz72-bbnzx0eRe9vLauW7TtPTlt0Bdh3lYfue8Y",
-          ),
-        });
-      }
-
-      const userId = localStorage.getItem("user_id");
-
-      await fetch(`${API_BASE}/push/subscribe`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": userId,
-        },
-        body: JSON.stringify(subscription),
-      });
-
-      console.log("Push enabled");
-    } catch (err) {
-      console.error("Push setup error:", err);
-    }
-  }
+  const [pushStatus, setPushStatus] = useState("default");
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -103,6 +46,39 @@ function App() {
         .then(() => console.log("Service Worker registered"))
         .catch((err) => console.error("SW registration failed:", err));
     }
+  }, []);
+
+  useEffect(() => {
+    async function checkPushStatus() {
+      if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+        setPushStatus("unsupported");
+        return;
+      }
+
+      const permission = Notification.permission;
+
+      if (permission === "denied") {
+        setPushStatus("denied");
+        return;
+      }
+
+      if (permission === "default") {
+        setPushStatus("default");
+        return;
+      }
+
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+
+        setPushStatus(sub ? "granted" : "unsubscribed");
+      } catch (err) {
+        console.error("Push status check failed:", err);
+        setPushStatus("default");
+      }
+    }
+
+    checkPushStatus();
   }, []);
 
   useEffect(() => {
@@ -134,17 +110,6 @@ function App() {
     const timer = setTimeout(() => setShowSplash(false), 4000);
     return () => clearTimeout(timer);
   }, []);
-
-  // ALLOW NOTIFICATIONS FOR NEW DEVICE/USER
-  useEffect(() => {
-    if (
-      !showSplash &&
-      typeof Notification !== "undefined" &&
-      Notification.permission === "default"
-    ) {
-      setShowPermissionUI(true);
-    }
-  }, [showSplash]);
 
   useEffect(() => {
     async function loadEvents() {
@@ -213,7 +178,10 @@ function App() {
     async function fetchNotifications() {
       try {
         const userId = localStorage.getItem("user_id");
-        if (!userId) return; // 🚫 wait until user exists
+        if (!userId) {
+          console.error("Missing user_id");
+          return;
+        }
 
         const since = new Date(0).toISOString();
 
@@ -248,6 +216,64 @@ function App() {
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));
   }, [notifications]);
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  }
+
+  async function enablePushNotifications() {
+    try {
+      if (!("serviceWorker" in navigator)) return;
+
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        setPushStatus("denied");
+        return;
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+
+      let subscription = await reg.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            import.meta.env.VITE_VAPID_PUBLIC_KEY,
+          ),
+        });
+      }
+
+      const userId = localStorage.getItem("user_id");
+
+      const res = await fetch(`${API_BASE}/push/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": userId,
+        },
+        body: JSON.stringify(subscription),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save subscription");
+      }
+
+      setPushStatus("granted");
+    } catch (err) {
+      console.error("Push enable failed:", err);
+      setPushStatus("unsubscribed");
+    }
+  }
 
   return (
     <>
@@ -304,6 +330,8 @@ function App() {
               preferences={preferences}
               setPreferences={setPreferences}
               loading={loadingPreferences}
+              pushStatus={pushStatus}
+              enablePushNotifications={enablePushNotifications}
             />
           )}
         </div>
@@ -314,23 +342,6 @@ function App() {
           unreadCount={unreadCount}
         />
       </div>
-
-      {showPermissionUI && (
-        <div className="overlay">
-          <div className="overlay-card">
-            <div className="overlay-text">
-              Enable notifications for race alerts
-            </div>
-
-            <button
-              className="done-btn"
-              style={{ marginTop: "16px" }}
-              onClick={requestPushPermission}>
-              Allow Notifications
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

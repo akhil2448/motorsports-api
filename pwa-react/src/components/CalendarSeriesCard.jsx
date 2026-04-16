@@ -237,6 +237,13 @@ export default function CalendarSeriesCard({
                 {/* SESSIONS */}
                 <div className="calendar-sessions">
                   {activeEvent === idx &&
+                    (!event.sessions || event.sessions.length === 0) && (
+                      <div className="session">
+                        <span>Schedule yet to be released</span>
+                      </div>
+                    )}
+
+                  {activeEvent === idx &&
                     Object.entries(
                       groupByDay(event.sessions, useLocalTime),
                     ).map(([day, sessions], i) => {

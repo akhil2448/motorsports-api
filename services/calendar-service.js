@@ -4,28 +4,60 @@ const { getFallbackEndTime } = require("../utils/fallbackDuration");
 const { getStatus } = require("../utils/status");
 
 async function getCalendar(days = 7) {
-  const result = await pool.query(
-    `
-  SELECT *
-  FROM calendar_units_view
-  WHERE start_time IS NOT NULL
-  AND DATE_PART('year', start_time) = DATE_PART('year', NOW())
-  ORDER BY start_time
-  `,
-  );
+  const [eventsRes, unitsRes] = await Promise.all([
+    pool.query(`
+      SELECT
+        e.id AS event_id,
+        e.event_name,
+        e.location,
+        e.country,
+        e.start_date AS event_start,
+        e.end_date AS event_end,
+        s.short_name AS series
+      FROM events e
+      JOIN series s ON e.series_id = s.id
+      WHERE DATE_PART('year', e.start_date) = DATE_PART('year', NOW())
+      ORDER BY e.start_date
+    `),
 
-  return formatCalendar(result.rows);
+    pool.query(`
+      SELECT *
+      FROM calendar_units_view
+      WHERE start_time IS NOT NULL
+      AND DATE_PART('year', start_time) = DATE_PART('year', NOW())
+      ORDER BY start_time
+    `),
+  ]);
+
+  return formatCalendar(eventsRes.rows, unitsRes.rows);
 }
 
 async function getLiveCalendar() {
-  const result = await pool.query(`
-    SELECT *
-    FROM calendar_units_view
-    WHERE start_time IS NOT NULL
-    ORDER BY start_time
-  `);
+  const [eventsRes, unitsRes] = await Promise.all([
+    pool.query(`
+      SELECT
+        e.id AS event_id,
+        e.event_name,
+        e.location,
+        e.country,
+        e.start_date AS event_start,
+        e.end_date AS event_end,
+        s.short_name AS series
+      FROM events e
+      JOIN series s ON e.series_id = s.id
+      WHERE DATE_PART('year', e.start_date) = DATE_PART('year', NOW())
+      ORDER BY e.start_date
+    `),
 
-  return formatCalendar(result.rows);
+    pool.query(`
+      SELECT *
+      FROM calendar_units_view
+      WHERE start_time IS NOT NULL
+      ORDER BY start_time
+    `),
+  ]);
+
+  return formatCalendar(eventsRes.rows, unitsRes.rows);
 }
 
 function normalizeLocalTime(value) {
@@ -48,14 +80,12 @@ function normalizeLocalTime(value) {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
 
-function formatCalendar(rows) {
+function formatCalendar(eventRows, unitRows) {
   const seriesMap = {};
 
-  rows.forEach((row) => {
+  eventRows.forEach((row) => {
     const series = row.series;
-    const eventId = row.event_id;
 
-    // SERIES
     if (!seriesMap[series]) {
       seriesMap[series] = {
         series,
@@ -63,40 +93,42 @@ function formatCalendar(rows) {
       };
     }
 
-    // EVENT
-    let event = seriesMap[series].events.find((e) => e.event_id === eventId);
+    const endDate = row.event_end ? new Date(row.event_end) : null;
 
-    if (!event) {
-      const endDate = new Date(row.event_end);
+    const startDate = row.event_start
+      ? new Date(row.event_start)
+      : endDate
+        ? new Date(endDate.getTime() - 2 * 86400000)
+        : null;
 
-      const startDate = row.event_start
-        ? new Date(row.event_start)
-        : new Date(endDate.getTime() - 2 * 86400000); // ✅ fallback (-2 days)
+    seriesMap[series].events.push({
+      event_id: row.event_id,
+      name: row.event_name,
+      location: row.location,
+      country: row.country,
+      startDate,
+      endDate,
+      sessions: [],
+    });
+  });
 
-      event = {
-        event_id: eventId,
-        name: row.event_name,
-        location: row.location,
-        country: row.country,
-        startDate,
-        endDate,
-        sessions: [],
-      };
+  unitRows.forEach((row) => {
+    const series = row.series;
+    const eventId = row.event_id;
 
-      seriesMap[series].events.push(event);
-    }
+    if (!seriesMap[series]) return;
 
-    // SESSION / STAGE
+    const event = seriesMap[series].events.find((e) => e.event_id === eventId);
+
+    if (!event) return;
+
     event.sessions.push({
       name: row.name,
       session_type: row.unit_type,
-
       start_time_utc: new Date(row.start_time),
       end_time_utc: row.end_time ? new Date(row.end_time) : null,
-
       start_time_local: normalizeLocalTime(row.start_time_local),
       end_time_local: normalizeLocalTime(row.end_time_local),
-
       event_timezone: row.event_timezone,
     });
   });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import WheelPicker from "./WheelPicker";
 import "../styles/components/profile.css";
 
@@ -198,29 +199,33 @@ export default function Profile({
       </div>
 
       {/* PICKER */}
-      {isEditingTime && (
-        <div className="picker-overlay" onClick={() => setIsEditingTime(false)}>
-          <div className="picker-modal" onClick={(e) => e.stopPropagation()}>
-            <WheelPicker
-              value={notifyBefore}
-              onChange={(val) => {
-                setNotifyBefore(val);
-                setIsDirty(true);
-              }}
-              options={[5, 10, 15, 30, 45, 60]}
-            />
+      {isEditingTime &&
+        createPortal(
+          <div
+            className="picker-overlay"
+            onClick={() => setIsEditingTime(false)}>
+            <div className="picker-modal" onClick={(e) => e.stopPropagation()}>
+              <WheelPicker
+                value={notifyBefore}
+                onChange={(val) => {
+                  setNotifyBefore(val);
+                  setIsDirty(true);
+                }}
+                options={[5, 10, 15, 30, 45, 60]}
+              />
 
-            <button
-              className="done-btn"
-              onClick={() => {
-                document.getElementById("wheel-commit")?.click();
-                setIsEditingTime(false);
-              }}>
-              Done
-            </button>
-          </div>
-        </div>
-      )}
+              <button
+                className="done-btn"
+                onClick={() => {
+                  document.getElementById("wheel-commit")?.click();
+                  setIsEditingTime(false);
+                }}>
+                Done
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {showToast && (
         <div className="overlay">

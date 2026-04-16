@@ -6,7 +6,6 @@ import NotificationsScreen from "./components/Notifications";
 import SplashScreen from "./components/SplashScreen";
 import Profile from "./components/Profile";
 import PageHeader from "./components/PageHeader";
-import { getOrCreateUser } from "./services/userManager";
 import { getUserPreferences } from "./services/userPreferencesService";
 
 import "./styles/components/splash.css";
@@ -82,21 +81,21 @@ function App() {
   }, []);
 
   useEffect(() => {
-    async function init() {
+    async function loadPreferences() {
       try {
-        const userId = await getOrCreateUser();
+        const userId = localStorage.getItem("user_id");
+        if (!userId) return;
 
         const prefs = await getUserPreferences(userId);
-
         setPreferences(prefs);
       } catch (err) {
-        console.error("Init failed", err);
+        console.error("Preferences load failed", err);
       } finally {
         setLoadingPreferences(false);
       }
     }
 
-    init();
+    loadPreferences();
   }, []);
 
   useEffect(() => {

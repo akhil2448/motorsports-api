@@ -4,8 +4,16 @@ import "./index.css";
 //import "./App.css";
 import App from "./App.jsx";
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+import { getOrCreateUser } from "./services/userManager";
+
+async function bootstrap() {
+  await getOrCreateUser();
+
+  createRoot(document.getElementById("root")).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}
+
+bootstrap();

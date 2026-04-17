@@ -190,11 +190,20 @@
   line-height: 1;
   color: #ff3b30;
   font-weight: 600;
+
+  position: relative;
+  overflow: visible; /* or hidden if you want tighter */
 }
 
 .dot {
   width: 8px;
   height: 8px;
+
+  min-width: 8px; /* ✅ prevents flex/grid stretch */
+  min-height: 8px;
+
+  flex-shrink: 0; /* ✅ CRITICAL */
+
   background: #ff3b30;
   border-radius: 50%;
   position: relative;
@@ -208,8 +217,8 @@
   top: 50%;
   left: 50%;
 
-  width: 8px;
-  height: 8px;
+  width: 100%;
+  height: 100%;
 
   background: #ff3b30;
   border-radius: 50%;
@@ -227,11 +236,11 @@
     opacity: 0.5;
   }
   70% {
-    transform: translate(-50%, -50%) scale(2.2);
-    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(1.8);
+    opacity: 0.2;
   }
   100% {
-    transform: translate(-50%, -50%) scale(2.8);
+    transform: translate(-50%, -50%) scale(2.2);
     opacity: 0;
   }
 }
@@ -513,18 +522,6 @@
 
   height: 1px;
   background: rgba(255, 255, 255, 0.05); /* lighter than event divider */
-}
-
-/* SESSION ROW */
-.session {
-  display: flex;
-  justify-content: space-between;
-
-  font-size: 14px;
-  color: #bbb;
-
-  padding: 3px 0;
-  padding-left: 24px;
 }
 
 /* SESSION NAME */

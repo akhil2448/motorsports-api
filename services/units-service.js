@@ -1,5 +1,6 @@
 require("../src/config/env");
 const { getFallbackEndTime } = require("../utils/fallbackDuration");
+const { getStatus } = require("../utils/status"); // ✅ ADD THIS
 const pool = require("../db/pool");
 
 async function getUpcomingUnits(limit = 20) {
@@ -68,6 +69,8 @@ async function getEventSchedule(eventId) {
 
   const rows = result.rows;
 
+  const now = new Date();
+
   return rows.map((row) => {
     const start = new Date(row.start_time);
     let end = row.end_time ? new Date(row.end_time) : null;
@@ -92,13 +95,23 @@ async function getEventSchedule(eventId) {
       if (fallbackEnd) end = fallbackEnd;
     }
 
+    let status;
+
+    if (start > now) {
+      status = "upcoming";
+    } else if (end && start <= now && end >= now) {
+      status = "live";
+    } else {
+      status = "completed";
+    }
+
     return {
       unit_id: row.unit_id,
       name: row.name,
       start_time: start,
       end_time: end,
-
-      phase: row.phase || null, // ✅ CRITICAL
+      phase: row.phase || null,
+      status, // ✅ THIS FIXES EVERYTHING
     };
   });
 }

@@ -13,11 +13,11 @@ function transformEvent(event) {
     event_name: event.event_name,
     location: `${event.location}, ${event.country}`,
 
-    // ✅ correct fields
     event_start: event.event_start,
     event_end: event.event_end,
 
-    sessions: [],
+    sessions: event.sessions || [], // ✅ KEEP backend data
+    status: event.status, // ✅ ALSO IMPORTANT
   };
 }
 
@@ -49,6 +49,7 @@ export async function getEventSchedule(eventId) {
 
         // ✅ NEW (critical for TT grouping)
         phase: item.phase || null,
+        status: item.status,
       };
     })
     .filter(Boolean)

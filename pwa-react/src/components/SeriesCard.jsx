@@ -52,7 +52,7 @@ export default function SeriesCard({ event, expanded, onToggle }) {
       ...s,
       start,
       end,
-      status: s.status, // ✅ backend status
+      status: s.status ?? "upcoming",
     };
   });
 
@@ -139,31 +139,8 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
   const highlightSession = currentSession || nextSession || null;
 
-  let eventStatus = "completed";
-
-  if (startDate && endDate) {
-    if (now < startDate) {
-      eventStatus = "upcoming";
-    } else if (now >= startDate && now <= endDate) {
-      eventStatus = "live"; // this is your "ongoing"
-    } else {
-      eventStatus = "completed";
-    }
-  }
-
-  // let eventStatus = "";
-
-  // if (isAnySessionLive) {
-  //   eventStatus = "LIVE";
-  // } else if (isEventOngoing) {
-  //   eventStatus = "UPCOMING";
-  // } else if (nextSession) {
-  //   eventStatus = getCountdown(nextSession.start);
-  // } else if (sessions.length > 0) {
-  //   eventStatus = "DONE";
-  // } else {
-  //   eventStatus = getCountdown(startDate);
-  // }
+  // ✅ USE BACKEND STATUS (source of truth)
+  let eventStatus = event.status || "completed";
 
   const formatDateRange = (start, end) => {
     const month = start.toLocaleDateString("en-US", {
@@ -283,15 +260,19 @@ export default function SeriesCard({ event, expanded, onToggle }) {
             className={`countdown ${
               eventStatus === "live"
                 ? "live"
-                : eventStatus === "upcoming"
-                  ? "upcoming"
-                  : ""
+                : eventStatus === "ongoing"
+                  ? "ongoing"
+                  : eventStatus === "upcoming"
+                    ? "upcoming"
+                    : ""
             }`}>
             {eventStatus === "live" ? (
               <span className="live-indicator">
                 <span className="dot" />
                 LIVE
               </span>
+            ) : eventStatus === "ongoing" ? (
+              "ONGOING"
             ) : eventStatus === "upcoming" ? (
               getCountdown(startDate)
             ) : (
@@ -316,6 +297,8 @@ export default function SeriesCard({ event, expanded, onToggle }) {
                 </span>
                 {" • "}
               </>
+            ) : eventStatus === "ongoing" ? (
+              "Next: "
             ) : (
               "Next: "
             )}
@@ -388,13 +371,15 @@ export default function SeriesCard({ event, expanded, onToggle }) {
                               <span>{s.name}</span>
 
                               <span className="session-time">
-                                {isLive ? (
+                                {s.status === "live" ? (
                                   <span className="live-indicator">
                                     <span className="dot" />
                                     LIVE
                                   </span>
+                                ) : s.status === "upcoming" ? (
+                                  countdown
                                 ) : (
-                                  countdown || "Done"
+                                  "Done"
                                 )}
                               </span>
                             </div>
@@ -442,13 +427,15 @@ export default function SeriesCard({ event, expanded, onToggle }) {
                           <span>{s.name}</span>
 
                           <span className="session-time">
-                            {isLive ? (
+                            {s.status === "live" ? (
                               <span className="live-indicator">
                                 <span className="dot" />
                                 LIVE
                               </span>
+                            ) : s.status === "upcoming" ? (
+                              countdown
                             ) : (
-                              countdown || "Done"
+                              "Done"
                             )}
                           </span>
                         </div>

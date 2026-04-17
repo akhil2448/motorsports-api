@@ -37,6 +37,7 @@ async function getUpcomingEvents() {
     FROM events e
     JOIN series s ON e.series_id = s.id
     LEFT JOIN units_view u ON u.event_id = e.id
+    WHERE e.end_date >= NOW() - INTERVAL '1 day'  
     ORDER BY e.id, u.start_time;
   `);
 
@@ -74,7 +75,7 @@ async function getUpcomingEvents() {
     const start = new Date(row.start_time);
     let end = row.end_time ? new Date(row.end_time) : null;
 
-    // ✅ fallback logic (same as calendar)
+    // fallback
     if (!end) {
       const fallbackEnd = getFallbackEndTime({
         series: row.series,
@@ -86,14 +87,28 @@ async function getUpcomingEvents() {
         event,
       });
 
-      if (fallbackEnd) end = fallbackEnd;
+      end = fallbackEnd || new Date(start.getTime() + 60 * 60000);
     }
+
+    // ✅ guard invalid dates
+    if (!start || isNaN(start)) return;
+    if (!end || isNaN(end)) {
+      end = new Date(start.getTime() + 60 * 60000);
+    }
+
+    // ✅ single source of truth
+    const status = getStatus({
+      start,
+      end,
+      now,
+    });
 
     event.sessions.push({
       start,
       end,
       name: row.name,
-      phase: row.phase || null, // ✅ CRITICAL
+      phase: row.phase || null,
+      status,
     });
   });
 
@@ -114,16 +129,35 @@ async function getUpcomingEvents() {
     }
 
     // ✅ status
-    event.status = getStatus({
-      start: event.event_start,
-      end: event.event_end,
-      now,
-    });
+    // 🔥 session-level truth
+    const hasLiveSession = event.sessions.some(
+      (s) => s.start && s.end && now >= s.start && now <= s.end,
+    );
+
+    const hasUpcomingSession = event.sessions.some(
+      (s) => s.start && now < s.start,
+    );
+
+    // 🔥 event-level state
+    if (hasLiveSession) {
+      event.status = "live"; // ✅ ONLY when session is live
+    } else if (
+      event.event_start &&
+      event.event_end &&
+      now >= event.event_start &&
+      now <= event.event_end
+    ) {
+      event.status = "ongoing"; // ✅ new state
+    } else if (hasUpcomingSession) {
+      event.status = "upcoming";
+    } else {
+      event.status = "completed";
+    }
   });
 
   // ✅ pick best event per series
   const final = {};
-  const priority = { live: 1, upcoming: 2, completed: 3 };
+  const priority = { live: 1, ongoing: 2, upcoming: 3, completed: 4 };
 
   Object.values(eventsMap).forEach((event) => {
     const key = event.series;

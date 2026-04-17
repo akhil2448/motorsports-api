@@ -370,18 +370,20 @@ export default function SeriesCard({ event, expanded, onToggle }) {
                     `}>
                               <span>{s.name}</span>
 
-                              <span className="session-time">
+                              <div className="session-right">
                                 {s.status === "live" ? (
-                                  <span className="live-indicator">
+                                  <div className="live-indicator">
                                     <span className="dot" />
                                     LIVE
-                                  </span>
-                                ) : s.status === "upcoming" ? (
-                                  countdown
+                                  </div>
                                 ) : (
-                                  "Done"
+                                  <span className="session-time">
+                                    {s.status === "upcoming"
+                                      ? countdown
+                                      : "Done"}
+                                  </span>
                                 )}
-                              </span>
+                              </div>
                             </div>
                           );
                         })}

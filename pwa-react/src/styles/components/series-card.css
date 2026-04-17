@@ -533,14 +533,14 @@
 }
 
 /* SESSION TIME (LESS IMPORTANT) */
-.session span:last-child {
+.session > span:last-child {
   font-size: 12px;
   color: var(--text-tertiary);
   font-weight: 500;
 
-  white-space: nowrap; /* ✅ prevents ugly wrapping */
+  white-space: nowrap;
   text-align: right;
-  min-width: 90px; /* consistent column width */
+  min-width: 90px;
 }
 
 /* LIVE SESSION (HIGH PRIORITY) */
@@ -753,4 +753,12 @@
 .phase-badge.race {
   background: #ff3b30;
   color: white;
+}
+
+.session-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  min-width: 90px; /* aligns with time column */
 }

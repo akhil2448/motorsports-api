@@ -366,44 +366,46 @@ export default function CalendarSeriesCard({
                                     {s.name}
                                   </span>
 
-                                  <span>
+                                  <div className="session-right">
                                     {isLive ? (
-                                      <span className="live-indicator">
+                                      <div className="live-indicator">
                                         <span className="dot" />
                                         LIVE
-                                      </span>
+                                      </div>
                                     ) : (
-                                      (() => {
-                                        const formatLocal = (d) =>
-                                          d.toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            hour12: false,
-                                          });
+                                      <span>
+                                        {(() => {
+                                          const formatLocal = (d) =>
+                                            d.toLocaleTimeString([], {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                              hour12: false,
+                                            });
 
-                                        let displayStart;
-                                        let displayEnd;
+                                          let displayStart;
+                                          let displayEnd;
 
-                                        if (useLocalTime) {
-                                          // Track time
-                                          displayStart = formatTrackTime(
-                                            s.start_time_local,
-                                          );
-                                          displayEnd = s.end_time_local
-                                            ? formatTrackTime(s.end_time_local)
-                                            : null;
-                                        } else {
-                                          // User time
-                                          displayStart = formatLocal(start);
-                                          displayEnd = end
-                                            ? formatLocal(end)
-                                            : null;
-                                        }
+                                          if (useLocalTime) {
+                                            displayStart = formatTrackTime(
+                                              s.start_time_local,
+                                            );
+                                            displayEnd = s.end_time_local
+                                              ? formatTrackTime(
+                                                  s.end_time_local,
+                                                )
+                                              : null;
+                                          } else {
+                                            displayStart = formatLocal(start);
+                                            displayEnd = end
+                                              ? formatLocal(end)
+                                              : null;
+                                          }
 
-                                        return `${displayStart}${displayEnd ? ` - ${displayEnd}` : ""}`;
-                                      })()
+                                          return `${displayStart}${displayEnd ? ` - ${displayEnd}` : ""}`;
+                                        })()}
+                                      </span>
                                     )}
-                                  </span>
+                                  </div>
                                 </div>
                               );
                             })}

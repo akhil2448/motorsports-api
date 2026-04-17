@@ -10,20 +10,6 @@ router.get("/run-notifications", async (req, res) => {
   try {
     const now = new Date();
 
-    // 🚀 SMART CHECK: only run if something is happening soon
-    const { rows: quickCheck } = await pool.query(`
-  SELECT 1
-  FROM units_view
-  WHERE start_time >= NOW() - INTERVAL '5 minutes'
-  AND start_time <= NOW() + INTERVAL '60 minutes'
-  LIMIT 1
-`);
-
-    if (!quickCheck.length) {
-      console.log("⏭️ No upcoming sessions → skipping cron");
-      return res.json({ status: "skipped-no-activity" });
-    }
-
     // ✅ Fetch user preferences
     const result = await pool.query(`
       SELECT up.user_id, up.followed_series, up.notify_before_minutes, up.notify_event_start
@@ -169,6 +155,9 @@ router.get("/run-notifications", async (req, res) => {
       users_count: preferences.length,
       total_units: units.length,
       message: "Notification engine executed",
+
+      // 🔥 CRITICAL for KV optimization
+      next_session_time: units.length ? units[0].start_time : null,
     });
   } catch (error) {
     console.error("❌ Cron error FULL:", error);

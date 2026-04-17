@@ -32,7 +32,8 @@ async function getUpcomingEvents() {
       u.start_time,
       u.end_time,
       u.name,
-      u.unit_type
+      u.unit_type,
+      u.phase
     FROM events e
     JOIN series s ON e.series_id = s.id
     LEFT JOIN units_view u ON u.event_id = e.id
@@ -91,6 +92,8 @@ async function getUpcomingEvents() {
     event.sessions.push({
       start,
       end,
+      name: row.name,
+      phase: row.phase || null, // ✅ CRITICAL
     });
   });
 

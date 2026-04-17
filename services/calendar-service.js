@@ -125,6 +125,7 @@ function formatCalendar(eventRows, unitRows) {
     event.sessions.push({
       name: row.name,
       session_type: row.unit_type,
+      phase: row.phase,
       start_time_utc: new Date(row.start_time),
       end_time_utc: row.end_time ? new Date(row.end_time) : null,
       start_time_local: normalizeLocalTime(row.start_time_local),
@@ -204,6 +205,8 @@ function formatCalendar(eventRows, unitRows) {
 
       // ✅ Sort sessions
       event.sessions.sort((a, b) => a.start_time_utc - b.start_time_utc);
+
+      event.hasSchedule = event.sessions.length > 0;
     });
 
     // ✅ Sort events

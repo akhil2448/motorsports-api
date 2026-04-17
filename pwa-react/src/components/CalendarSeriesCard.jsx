@@ -6,6 +6,7 @@ import wrcLogo from "../assets/logos/wrc.svg";
 import indycarLogo from "../assets/logos/indycar.svg";
 import gtwcLogo from "../assets/logos/gtwc.svg";
 import dtmLogo from "../assets/logos/dtm.svg";
+import ttLogo from "../assets/logos/tt.svg";
 
 const normalizeSeries = (series) => {
   if (!series) return null;
@@ -17,7 +18,7 @@ const normalizeSeries = (series) => {
   if (s === "MOTOGP") return "MotoGP";
   if (s === "INDYCAR") return "IndyCar";
   if (s === "DTM") return "DTM";
-
+  if (s === "TT") return "TT";
   if (s.includes("GTWC")) return "GTWC";
 
   return null;
@@ -30,6 +31,7 @@ const logoMap = {
   IndyCar: indycarLogo,
   GTWC: gtwcLogo,
   DTM: dtmLogo,
+  TT: ttLogo,
 };
 
 const formatDateRange = (start, end) => {
@@ -58,6 +60,36 @@ const groupByDay = (sessions, useLocalTime) => {
   });
 
   return grouped;
+};
+
+const groupTTByPhaseAndDay = (sessions, useLocalTime) => {
+  const phaseGroups = {};
+
+  sessions.forEach((s) => {
+    const phase = s.phase || "other";
+
+    const dateKey = useLocalTime
+      ? new Date(s.start_time_local).toDateString()
+      : new Date(s.start_time_utc).toDateString();
+
+    if (!phaseGroups[phase]) {
+      phaseGroups[phase] = {};
+    }
+
+    if (!phaseGroups[phase][dateKey]) {
+      phaseGroups[phase][dateKey] = [];
+    }
+
+    phaseGroups[phase][dateKey].push(s);
+  });
+
+  return Object.entries(phaseGroups).map(([phase, days]) => ({
+    phase,
+    days: Object.entries(days).map(([date, sessions]) => ({
+      date,
+      sessions,
+    })),
+  }));
 };
 
 export default function CalendarSeriesCard({
@@ -245,7 +277,31 @@ export default function CalendarSeriesCard({
 
                   {activeEvent === idx &&
                     Object.entries(
-                      groupByDay(event.sessions, useLocalTime),
+                      data.series === "TT"
+                        ? (() => {
+                            const merged = {};
+
+                            groupTTByPhaseAndDay(
+                              event.sessions,
+                              useLocalTime,
+                            ).forEach((phaseGroup) => {
+                              phaseGroup.days.forEach((d) => {
+                                if (!merged[d.date]) {
+                                  merged[d.date] = [];
+                                }
+
+                                merged[d.date].push(
+                                  ...d.sessions.map((s) => ({
+                                    ...s,
+                                    phase: s.phase || phaseGroup.phase,
+                                  })),
+                                );
+                              });
+                            });
+
+                            return merged;
+                          })()
+                        : groupByDay(event.sessions, useLocalTime),
                     ).map(([day, sessions], i) => {
                       const isToday =
                         new Date(day).toDateString() === now.toDateString();
@@ -271,72 +327,86 @@ export default function CalendarSeriesCard({
                                 })}
                           </div>
 
-                          {sessions.map((s, j) => {
-                            const start = new Date(s.start_time_utc);
-                            const end = s.end_time_utc
-                              ? new Date(s.end_time_utc)
-                              : null;
+                          {[...sessions]
+                            .sort(
+                              (a, b) =>
+                                new Date(a.start_time_utc) -
+                                new Date(b.start_time_utc),
+                            )
+                            .map((s, j) => {
+                              const start = new Date(s.start_time_utc);
+                              const end = s.end_time_utc
+                                ? new Date(s.end_time_utc)
+                                : null;
 
-                            let isLive = false;
+                              let isLive = false;
 
-                            if (end) {
-                              isLive = now >= start && now <= end;
-                            } else {
-                              const diff = now - start;
-                              isLive = diff >= 0 && diff <= 10 * 60 * 1000;
-                            }
+                              if (end) {
+                                isLive = now >= start && now <= end;
+                              } else {
+                                const diff = now - start;
+                                isLive = diff >= 0 && diff <= 10 * 60 * 1000;
+                              }
 
-                            const isCompleted = end ? now > end : now > start;
+                              const isCompleted = end ? now > end : now > start;
 
-                            return (
-                              <div
-                                key={j}
-                                className={`session ${
-                                  isLive ? "live" : ""
-                                } ${isCompleted ? "completed" : ""}`}>
-                                <span>{s.name}</span>
+                              return (
+                                <div
+                                  key={j}
+                                  className={`session ${
+                                    isLive ? "live" : ""
+                                  } ${isCompleted ? "completed" : ""}`}>
+                                  <span>
+                                    {data.series === "TT" && s.phase && (
+                                      <span
+                                        className={`phase-badge ${s.phase}`}>
+                                        {s.phase === "race" ? "RACE" : "QUALI"}
+                                      </span>
+                                    )}
+                                    {s.name}
+                                  </span>
 
-                                <span>
-                                  {isLive ? (
-                                    <span className="live-indicator">
-                                      <span className="dot" />
-                                      LIVE
-                                    </span>
-                                  ) : (
-                                    (() => {
-                                      const formatLocal = (d) =>
-                                        d.toLocaleTimeString([], {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                          hour12: false,
-                                        });
+                                  <span>
+                                    {isLive ? (
+                                      <span className="live-indicator">
+                                        <span className="dot" />
+                                        LIVE
+                                      </span>
+                                    ) : (
+                                      (() => {
+                                        const formatLocal = (d) =>
+                                          d.toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            hour12: false,
+                                          });
 
-                                      let displayStart;
-                                      let displayEnd;
+                                        let displayStart;
+                                        let displayEnd;
 
-                                      if (useLocalTime) {
-                                        // Track time
-                                        displayStart = formatTrackTime(
-                                          s.start_time_local,
-                                        );
-                                        displayEnd = s.end_time_local
-                                          ? formatTrackTime(s.end_time_local)
-                                          : null;
-                                      } else {
-                                        // User time
-                                        displayStart = formatLocal(start);
-                                        displayEnd = end
-                                          ? formatLocal(end)
-                                          : null;
-                                      }
+                                        if (useLocalTime) {
+                                          // Track time
+                                          displayStart = formatTrackTime(
+                                            s.start_time_local,
+                                          );
+                                          displayEnd = s.end_time_local
+                                            ? formatTrackTime(s.end_time_local)
+                                            : null;
+                                        } else {
+                                          // User time
+                                          displayStart = formatLocal(start);
+                                          displayEnd = end
+                                            ? formatLocal(end)
+                                            : null;
+                                        }
 
-                                      return `${displayStart}${displayEnd ? ` - ${displayEnd}` : ""}`;
-                                    })()
-                                  )}
-                                </span>
-                              </div>
-                            );
-                          })}
+                                        return `${displayStart}${displayEnd ? ` - ${displayEnd}` : ""}`;
+                                      })()
+                                    )}
+                                  </span>
+                                </div>
+                              );
+                            })}
                         </div>
                       );
                     })}

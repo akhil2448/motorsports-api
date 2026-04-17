@@ -17,7 +17,9 @@ const {
 
 const {
   updateGTWCSessions,
-} = require("../src/providers/gtwc/cron/updateGTWCSessions"); // ✅ NEW
+} = require("../src/providers/gtwc/cron/updateGTWCSessions");
+
+const { ingestTT } = require("../src/providers/tt/ingestTT");
 
 /**
  * 🔒 Middleware for cron auth
@@ -87,6 +89,21 @@ router.get("/gtwc-update", verifyCron, async (req, res) => {
   } catch (err) {
     console.error("❌ GTWC cron failed:", err);
     res.status(500).json({ error: "GTWC cron failed" });
+  }
+});
+
+/**
+ * 🏁 TT schedule update (NEW)
+ */
+router.get("/tt-update", verifyCron, async (req, res) => {
+  console.log("🌐 TT cron triggered");
+
+  try {
+    await ingestTT(); // ✅ wait for completion
+    res.json({ status: "TT completed" });
+  } catch (err) {
+    console.error("❌ TT ingestion failed:", err);
+    res.status(500).json({ error: "TT cron failed" });
   }
 });
 

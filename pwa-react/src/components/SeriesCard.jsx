@@ -6,6 +6,7 @@ import wrcLogo from "../assets/logos/wrc.svg";
 import indycarLogo from "../assets/logos/indycar.svg";
 import gtwcLogo from "../assets/logos/gtwc.svg";
 import dtmLogo from "../assets/logos/dtm.svg";
+import ttLogo from "../assets/logos/tt.svg";
 
 const logoMap = {
   f1: f1Logo,
@@ -14,6 +15,7 @@ const logoMap = {
   indycar: indycarLogo,
   gtwc: gtwcLogo,
   dtm: dtmLogo,
+  tt: ttLogo,
 };
 
 export default function SeriesCard({ event, expanded, onToggle }) {
@@ -222,9 +224,42 @@ export default function SeriesCard({ event, expanded, onToggle }) {
     return Object.values(groups).sort((a, b) => a.date - b.date);
   };
 
-  const groupedSessions = groupSessionsByDay(
-    [...normalizedSessions].sort((a, b) => a.start - b.start),
-  );
+  const groupTTSessions = (sessions) => {
+    const phaseGroups = {};
+
+    sessions.forEach((s) => {
+      const phase = (s.phase || "other").toUpperCase();
+      const date = new Date(s.start);
+      const dayKey = date.toDateString();
+
+      if (!phaseGroups[phase]) {
+        phaseGroups[phase] = {};
+      }
+
+      if (!phaseGroups[phase][dayKey]) {
+        phaseGroups[phase][dayKey] = {
+          date,
+          sessions: [],
+        };
+      }
+
+      phaseGroups[phase][dayKey].sessions.push(s);
+    });
+
+    return Object.entries(phaseGroups).map(([phase, days]) => ({
+      phase,
+      days: Object.values(days).sort((a, b) => a.date - b.date),
+    }));
+  };
+
+  const groupedSessions =
+    series === "tt"
+      ? groupTTSessions(
+          [...normalizedSessions].sort((a, b) => a.start - b.start),
+        )
+      : groupSessionsByDay(
+          [...normalizedSessions].sort((a, b) => a.start - b.start),
+        );
 
   return (
     <div
@@ -284,7 +319,9 @@ export default function SeriesCard({ event, expanded, onToggle }) {
             ) : (
               "Next: "
             )}
-            {highlightSession.name}
+            {series === "tt"
+              ? `${(highlightSession.phase || "").toUpperCase()}: ${highlightSession.name}`
+              : highlightSession.name}
           </span>
 
           <span className="session-preview-time">
@@ -303,62 +340,123 @@ export default function SeriesCard({ event, expanded, onToggle }) {
             </div>
           )}
 
-          {groupedSessions.map((group) => {
-            const isToday = isSameDay(group.date, now); // ✅ ADD THIS
+          {series === "tt"
+            ? groupedSessions.map((phaseGroup) => (
+                <div key={phaseGroup.phase} className="phase-group">
+                  <div
+                    className={`phase-title ${
+                      phaseGroup.phase === "RACE" ? "race" : "qualifying"
+                    }`}>
+                    {phaseGroup.phase}
+                  </div>
 
-            const dayLabel = group.date.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            });
+                  {phaseGroup.days.map((group) => {
+                    const isToday = isSameDay(group.date, now);
 
-            return (
-              <div
-                key={group.date}
-                className={`session-day-group ${isToday ? "today" : ""}`} // ✅ ADD THIS
-              >
-                {/* DAY HEADER */}
-                <div className={`session-day ${isToday ? "today" : ""}`}>
-                  {" "}
-                  {/* ✅ ADD THIS */}
-                  {dayLabel}
+                    const dayLabel = group.date.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    });
+
+                    return (
+                      <div
+                        key={group.date}
+                        className={`session-day-group ${isToday ? "today" : ""}`}>
+                        <div
+                          className={`session-day ${isToday ? "today" : ""}`}>
+                          {dayLabel}
+                        </div>
+
+                        {group.sessions.map((s) => {
+                          const isLive = s.status === "live";
+
+                          const isHighlight =
+                            highlightSession &&
+                            Math.abs(s.start - highlightSession.start) < 1000;
+
+                          const countdown = getCountdown(s.start);
+
+                          return (
+                            <div
+                              key={s.unit_id || s.name}
+                              className={`session 
+                      ${isLive ? "live" : ""} 
+                      ${isHighlight ? "highlight" : ""} 
+                      ${s.status === "completed" ? "completed" : ""}
+                    `}>
+                              <span>{s.name}</span>
+
+                              <span className="session-time">
+                                {isLive ? (
+                                  <span className="live-indicator">
+                                    <span className="dot" />
+                                    LIVE
+                                  </span>
+                                ) : (
+                                  countdown || "Done"
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
+              ))
+            : groupedSessions.map((group) => {
+                const isToday = isSameDay(group.date, now);
 
-                {group.sessions.map((s) => {
-                  const isLive = s.status === "live";
+                const dayLabel = group.date.toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                });
 
-                  const isHighlight =
-                    highlightSession &&
-                    Math.abs(s.start - highlightSession.start) < 1000; // 🔥 safe compare
-
-                  const countdown = getCountdown(s.start);
-
-                  return (
-                    <div
-                      key={s.unit_id || s.name}
-                      className={`session 
-  ${isLive ? "live" : ""} 
-  ${isHighlight ? "highlight" : ""} 
-  ${s.status === "completed" ? "completed" : ""}
-`}>
-                      <span>{s.name}</span>
-
-                      <span className="session-time">
-                        {isLive ? (
-                          <span className="live-indicator">
-                            <span className="dot" />
-                            LIVE
-                          </span>
-                        ) : (
-                          countdown || "Done"
-                        )}
-                      </span>
+                return (
+                  <div
+                    key={group.date}
+                    className={`session-day-group ${isToday ? "today" : ""}`}>
+                    <div className={`session-day ${isToday ? "today" : ""}`}>
+                      {dayLabel}
                     </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+
+                    {group.sessions.map((s) => {
+                      const isLive = s.status === "live";
+
+                      const isHighlight =
+                        highlightSession &&
+                        Math.abs(s.start - highlightSession.start) < 1000;
+
+                      const countdown = getCountdown(s.start);
+
+                      return (
+                        <div
+                          key={s.unit_id || s.name}
+                          className={`session 
+                  ${isLive ? "live" : ""} 
+                  ${isHighlight ? "highlight" : ""} 
+                  ${s.status === "completed" ? "completed" : ""}
+                `}>
+                          <span>{s.name}</span>
+
+                          <span className="session-time">
+                            {isLive ? (
+                              <span className="live-indicator">
+                                <span className="dot" />
+                                LIVE
+                              </span>
+                            ) : (
+                              countdown || "Done"
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
         </div>
       </div>
     </div>

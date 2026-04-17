@@ -8,6 +8,7 @@ function getFallbackEndTime({ series, session, event }) {
     if (str.includes("indycar")) return "IndyCar";
     if (str.includes("wrc")) return "WRC";
     if (str.includes("gtwc")) return "GTWC";
+    if (str.includes("tt")) return "TT";
 
     return s;
   };
@@ -21,6 +22,41 @@ function getFallbackEndTime({ series, session, event }) {
   const start = new Date(session.start_time_utc);
 
   let duration = null;
+
+  // =========================
+  // TT (Isle of Man TT)
+  // =========================
+  if (normalizedSeries === "TT") {
+    const phase = session.phase?.toLowerCase();
+
+    // =========================
+    // QUALIFYING
+    // =========================
+    if (phase === "qualifying") {
+      if (name.includes("supersport") || name.includes("sportbike")) {
+        duration = 45;
+      } else if (name.includes("sidecar")) {
+        duration = 35;
+      } else if (name.includes("superbike") || name.includes("superstock")) {
+        duration = 50;
+      }
+    }
+
+    // =========================
+    // RACE
+    // =========================
+    else if (phase === "race") {
+      if (name.includes("superstock") || name.includes("sidecar")) {
+        duration = 60;
+      } else if (name.includes("supersport") || name.includes("sportbike")) {
+        duration = 80;
+      } else if (name.includes("superbike") || name.includes("senior")) {
+        duration = 120;
+      } else {
+        duration = 90; // fallback safety
+      }
+    }
+  }
 
   // =========================
   // WRC

@@ -29,6 +29,7 @@ export default function Profile({
       IndyCar: false,
       DTM: false,
       GTWC: false,
+      TT: false,
     };
 
     preferences.followed_series.forEach((s) => {

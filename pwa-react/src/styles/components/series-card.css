@@ -46,7 +46,7 @@
 }
 
 .series-card.expanded .calendar-events {
-  max-height: 2000px; /* big enough */
+  max-height: 10000px; /* big enough */
   opacity: 1;
 
   transform: translateY(0);
@@ -79,6 +79,10 @@
 }
 .accent.dtm {
   background: #ffd600;
+}
+
+.accent.tt {
+  background: #22ce83;
 }
 
 /* HEADER */
@@ -117,13 +121,17 @@
   height: 26px;
 }
 .series-logo.gtwc {
-  height: 35px;
+  height: 40px;
 }
 .series-logo.dtm {
   height: 35px;
 }
 .series-logo.indycar {
   height: 19px;
+}
+
+.series-logo.tt {
+  height: 40px;
 }
 
 /* TEXT */
@@ -290,6 +298,62 @@
   }
 }
 
+.phase-title {
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+
+  margin: 24px 0 12px;
+  padding-bottom: 6px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  opacity: 0.8;
+}
+
+/* divider line */
+.phase-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.25),
+    rgba(255, 255, 255, 0.05)
+  );
+}
+
+/* 🔵 Qualifying */
+.phase-title.qualifying {
+  color: #8aa4ff;
+}
+
+/* 🔴 Race */
+.phase-title.race {
+  color: #f73232;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.phase-title::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.phase-title.qualifying::before {
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+.phase-title.race::before {
+  background: #ff3b3b;
+  box-shadow: 0 0 8px rgba(255, 50, 50, 0.8);
+}
+
 /* TOGGLE */
 .time-toggle {
   display: flex;
@@ -391,7 +455,7 @@
 }
 
 .calendar-event.active .calendar-sessions {
-  max-height: 800px;
+  max-height: 10000px;
   opacity: 1;
 
   transform: translateY(0);
@@ -654,4 +718,22 @@
 
 .calendar-event.active .session span:last-child {
   color: var(--text-secondary);
+}
+
+.phase-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  margin-right: 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.phase-badge.qualifying {
+  background: #1e90ff;
+  color: white;
+}
+
+.phase-badge.race {
+  background: #ff3b30;
+  color: white;
 }

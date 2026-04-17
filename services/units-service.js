@@ -53,6 +53,7 @@ async function getEventSchedule(eventId) {
       u.name,
       u.start_time,
       u.end_time,
+      u.phase,
       e.event_name,
       s.short_name AS series
     FROM units_view u
@@ -96,6 +97,8 @@ async function getEventSchedule(eventId) {
       name: row.name,
       start_time: start,
       end_time: end,
+
+      phase: row.phase || null, // ✅ CRITICAL
     };
   });
 }

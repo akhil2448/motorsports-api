@@ -193,56 +193,55 @@
 
   position: relative;
   overflow: visible; /* or hidden if you want tighter */
+  contain: layout style;
 }
 
 .dot {
   width: 8px;
   height: 8px;
 
-  min-width: 8px; /* ✅ prevents flex/grid stretch */
-  min-height: 8px;
+  min-width: 8px; /* ✅ CRITICAL */
+  min-height: 8px; /* ✅ CRITICAL */
 
-  flex-shrink: 0; /* ✅ CRITICAL */
+  flex: 0 0 8px; /* ✅ prevents stretch */
+  display: block; /* ✅ removes inline weirdness */
 
-  background: #ff3b30;
   border-radius: 50%;
+  background: #ff3b30;
+
   position: relative;
-  display: inline-block;
 }
 
-/* FIXED CENTERED PULSE */
 .dot::after {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset: 0;
 
-  width: 100%;
-  height: 100%;
-
-  background: #ff3b30;
   border-radius: 50%;
+  background: inherit;
 
-  transform: translate(-50%, -50%);
-  transform-origin: center;
-
-  animation: pulse 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-  opacity: 0.8;
+  animation: pulse 1.8s ease-out infinite;
 }
 
 @keyframes pulse {
   0% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
     opacity: 0.5;
   }
-  70% {
-    transform: translate(-50%, -50%) scale(1.8);
-    opacity: 0.2;
+  80% {
+    transform: scale(1.8);
+    opacity: 0.15;
   }
   100% {
-    transform: translate(-50%, -50%) scale(2.2);
+    transform: scale(2);
     opacity: 0;
   }
+}
+
+.dot,
+.dot::after {
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .countdown.upcoming {

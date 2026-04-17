@@ -6,12 +6,52 @@ async function getUnsentNotifications() {
     `
     SELECT * FROM notifications
     WHERE is_sent = false
+    AND created_at >= NOW() - INTERVAL '1 day'
     ORDER BY created_at ASC
-    LIMIT 50
+    LIMIT 20
     `,
   );
 
   return result.rows;
+}
+
+function formatTime(min) {
+  if (min <= 1) return "now";
+  if (min < 60) return `${min}m`;
+  return `${Math.floor(min / 60)}h`;
+}
+
+function buildNotificationPayload(notification) {
+  const data =
+    typeof notification.data === "string"
+      ? JSON.parse(notification.data)
+      : notification.data;
+
+  if (!data || !data.start_time) return null;
+
+  const now = new Date();
+  const start = new Date(data.start_time);
+
+  const diffMin = Math.round((start - now) / 60000);
+
+  // 🚫 Skip outdated BEFORE notifications
+  if (notification.type === "BEFORE" && diffMin <= 0) {
+    return null;
+  }
+
+  // 🔥 LIVE (session started)
+  if (diffMin <= 0) {
+    return {
+      title: data.event_name,
+      body: `${data.series} • ${data.name} is live`,
+    };
+  }
+
+  // ⏳ BEFORE
+  return {
+    title: data.event_name,
+    body: `${data.series} • ${data.name} in ${formatTime(diffMin)}`,
+  };
 }
 
 async function sendPushForNotification(notification) {
@@ -28,28 +68,26 @@ async function sendPushForNotification(notification) {
   const subscriptions = subsResult.rows;
 
   if (subscriptions.length === 0) {
-    console.log("No subscriptions for user:", notification.user_id);
+    await db.query(`UPDATE notifications SET is_sent = true WHERE id = $1`, [
+      notification.id,
+    ]);
     return;
   }
 
-  // 2. Prepare payload
-  let pushBody = notification.message || "New update available";
+  const built = buildNotificationPayload(notification);
 
-  // Format structured messages nicely
-  if (pushBody.includes("|")) {
-    const parts = pushBody.split("|");
-
-    if (parts.length >= 3) {
-      const [series, event, detail] = parts;
-
-      pushBody = `${series} • ${event}\n${detail}`;
-    }
+  if (!built) {
+    // skip outdated notification
+    await db.query(`UPDATE notifications SET is_sent = true WHERE id = $1`, [
+      notification.id,
+    ]);
+    return;
   }
 
   const payload = JSON.stringify({
     notification: {
-      title: notification.title || "Race Update",
-      body: pushBody,
+      title: built.title,
+      body: built.body,
     },
   });
 

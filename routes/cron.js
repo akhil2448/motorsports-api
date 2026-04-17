@@ -10,6 +10,20 @@ router.get("/run-notifications", async (req, res) => {
   try {
     const now = new Date();
 
+    // 🚀 SMART CHECK: only run if something is happening soon
+    const { rows: quickCheck } = await pool.query(`
+  SELECT 1
+  FROM units_view
+  WHERE start_time >= NOW() - INTERVAL '5 minutes'
+  AND start_time <= NOW() + INTERVAL '60 minutes'
+  LIMIT 1
+`);
+
+    if (!quickCheck.length) {
+      console.log("⏭️ No upcoming sessions → skipping cron");
+      return res.json({ status: "skipped-no-activity" });
+    }
+
     // ✅ Fetch user preferences
     const result = await pool.query(`
       SELECT up.user_id, up.followed_series, up.notify_before_minutes, up.notify_event_start
@@ -18,6 +32,11 @@ router.get("/run-notifications", async (req, res) => {
     `);
 
     const preferences = result.rows;
+
+    if (!preferences.length) {
+      console.log("No users → skipping cron");
+      return res.json({ status: "no-users" });
+    }
 
     // ✅ Fetch upcoming units (7 days for testing)
     const { rows: units } = await pool.query(`
@@ -28,15 +47,18 @@ router.get("/run-notifications", async (req, res) => {
     FROM units_view uv
     JOIN events e ON uv.event_id = e.id
     JOIN series s ON e.series_id = s.id
-    WHERE uv.start_time >= NOW()
-    AND uv.start_time <= NOW() + INTERVAL '2 days'
+    WHERE uv.start_time >= NOW() - INTERVAL '5 minutes'
+    AND uv.start_time <= NOW() + INTERVAL '90 minutes'
     ORDER BY uv.start_time ASC
     `);
 
     console.log(`👥 Users: ${preferences.length}`);
     console.log(`🏁 Units fetched: ${units.length}`);
 
-    console.log("UNITS FULL SAMPLE:", units[0]);
+    if (!units.length) {
+      console.log("No upcoming units → skipping");
+      return res.json({ status: "no-units" });
+    }
 
     for (const user of preferences) {
       const {
@@ -45,20 +67,6 @@ router.get("/run-notifications", async (req, res) => {
         notify_before_minutes,
         notify_event_start,
       } = user;
-
-      console.log("USER PREF DEBUG:", {
-        user_id,
-        followed_series,
-        type: typeof followed_series,
-        isArray: Array.isArray(followed_series),
-      });
-
-      if (units.length > 0) {
-        console.log(
-          "UNIT SERIES SAMPLE:",
-          units.slice(0, 5).map((u) => u.series),
-        );
-      }
 
       // ✅ Filter by series (normalized)
       const normalizedFollowed = (followed_series || []).map((series) =>
@@ -69,17 +77,10 @@ router.get("/run-notifications", async (req, res) => {
         const unitSeries = unit.series?.trim().toLowerCase();
         const match = normalizedFollowed.includes(unitSeries);
 
-        if (!match) {
-          console.log(
-            `NO MATCH → user ${user_id} | followed:`,
-            followed_series,
-            "| unit.series:",
-            unit.series,
-          );
-        }
-
         return match;
       });
+
+      if (!userUnits.length) continue;
 
       // ✅ Time-based filtering
       const eligibleUnits = userUnits.filter((unit) => {
@@ -87,15 +88,13 @@ router.get("/run-notifications", async (req, res) => {
 
         const diffMinutes = (startTime - now) / (1000 * 60);
 
-        // 🔔 Notify BEFORE
         const shouldNotifyBefore =
           diffMinutes > 0 && diffMinutes <= notify_before_minutes;
 
-        // 🔥 Notify EVENT START (5 min early + 2 min late buffer)
-        const shouldNotifyEventStart =
-          notify_event_start && diffMinutes <= 5 && diffMinutes >= -2;
+        const shouldNotifyStart =
+          notify_event_start && diffMinutes <= 0 && diffMinutes >= -5; // small buffer
 
-        return shouldNotifyBefore || shouldNotifyEventStart;
+        return shouldNotifyBefore || shouldNotifyStart;
       });
 
       console.log(
@@ -113,8 +112,8 @@ router.get("/run-notifications", async (req, res) => {
           type = "BEFORE";
         } else if (
           notify_event_start &&
-          diffMinutes <= 5 &&
-          diffMinutes >= -2
+          diffMinutes <= 0 &&
+          diffMinutes >= -5
         ) {
           type = "START";
         }
@@ -123,55 +122,42 @@ router.get("/run-notifications", async (req, res) => {
 
         const dedupeKey = `${user_id}-${unit.unit_id}-${type}`;
 
-        const title =
-          type === "BEFORE"
-            ? `${unit.event_name} ${unit.name} starting soon`
-            : `${unit.event_name} ${unit.name} started`;
-
-        const getTimeLabel = (minutes) => {
-          if (minutes > 1440) return `${Math.round(minutes / 1440)} days`;
-          if (minutes > 60) return `${Math.round(minutes / 60)} hours`;
-          return `${Math.round(minutes)} min`;
-        };
-
-        // ✅ Message (structured for frontend parsing)
-        const message =
-          type === "BEFORE"
-            ? `${unit.series}|${unit.event_name}|${unit.name} starting in ${getTimeLabel(diffMinutes)}`
-            : `${unit.series}|${unit.event_name}|${unit.name} has started`;
-
         await pool.query(
           `
-          INSERT INTO notifications (
-            user_id,
-            series_id,
-            event_id,
-            type,
-            title,
-            message,
-            data,
-            dedupe_key
-          )
-          VALUES (
-            $1,
-            (SELECT id FROM series WHERE short_name = $2),
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8
-        )
-          ON CONFLICT (dedupe_key) DO NOTHING
-          `,
+  INSERT INTO notifications (
+    user_id,
+    series_id,
+    event_id,
+    type,
+    title,
+    message,
+    data,
+    dedupe_key
+  )
+  VALUES (
+    $1,
+    (SELECT id FROM series WHERE short_name = $2),
+    $3,
+    $4,
+    '',  -- ✅ EMPTY (computed later)
+    '',  -- ✅ EMPTY (computed later)
+    $5,
+    $6
+  )
+  ON CONFLICT (dedupe_key) DO NOTHING
+  `,
           [
             user_id,
             unit.series,
             unit.event_id,
             type,
-            title,
-            message,
-            JSON.stringify(unit),
+            JSON.stringify({
+              unit_id: unit.unit_id,
+              name: unit.name,
+              series: unit.series,
+              event_name: unit.event_name,
+              start_time: unit.start_time,
+            }),
             dedupeKey,
           ],
         );

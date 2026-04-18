@@ -51,8 +51,14 @@ router.get("/run-notifications", async (req, res) => {
     console.log(`🏁 Units fetched: ${units.length}`);
 
     if (!units.length) {
-      console.log("No upcoming units → skipping");
-      return res.json({ status: "no-units" });
+      console.log("No nearby units → still returning next session");
+
+      return res.json({
+        status: "no-units",
+        next_session_time: nextSession.length
+          ? nextSession[0].start_time
+          : null,
+      });
     }
 
     for (const user of preferences) {

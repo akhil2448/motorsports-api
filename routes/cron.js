@@ -38,6 +38,15 @@ router.get("/run-notifications", async (req, res) => {
     ORDER BY uv.start_time ASC
     `);
 
+    // 🔥 NEW: always get next upcoming session (GLOBAL, not 90 min window)
+    const { rows: nextSession } = await pool.query(`
+  SELECT start_time
+  FROM units_view
+  WHERE start_time > NOW()
+  ORDER BY start_time ASC
+  LIMIT 1
+`);
+
     console.log(`👥 Users: ${preferences.length}`);
     console.log(`🏁 Units fetched: ${units.length}`);
 
@@ -157,7 +166,7 @@ router.get("/run-notifications", async (req, res) => {
       message: "Notification engine executed",
 
       // 🔥 CRITICAL for KV optimization
-      next_session_time: units.length ? units[0].start_time : null,
+      next_session_time: nextSession.length ? nextSession[0].start_time : null,
     });
   } catch (error) {
     console.error("❌ Cron error FULL:", error);

@@ -120,18 +120,14 @@ export default function NotificationItem({
       {(() => {
         if (!n.message) return null;
 
-        const parts = n.message.split("|");
-
-        if (parts.length < 3) {
-          return <div className="notification-message">{n.message}</div>;
-        }
-
-        const [, event, detail] = parts;
-
         return (
           <div className="notification-message">
-            <div className="message-event">{event}</div>
-            <div className="message-detail">{detail}</div>
+            <div className="message-event">
+              {n.message?.split("•")[0]?.trim()}
+            </div>
+            <div className="message-detail">
+              {n.message?.split("•")[1]?.trim()}
+            </div>
           </div>
         );
       })()}

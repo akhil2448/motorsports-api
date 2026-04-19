@@ -22,7 +22,10 @@ function formatTime(min) {
 }
 
 function buildNotificationPayload(notification) {
-  const data = notification.data;
+  const data =
+    typeof notification.data === "string"
+      ? JSON.parse(notification.data)
+      : notification.data;
 
   if (!data || !data.start_time) return null;
 
@@ -40,14 +43,14 @@ function buildNotificationPayload(notification) {
   if (diffMin <= 1) {
     return {
       title: data.series,
-      body: `${data.event_name} • ${data.name} is live`,
+      body: `|${data.event_name}|${data.name} is live`,
     };
   }
 
   // ⏳ BEFORE
   return {
     title: data.series,
-    body: `${data.event_name} • ${data.name} in ${formatTime(diffMin)}`,
+    body: `|${data.event_name}|${data.name} in ${formatTime(diffMin)}`,
   };
 }
 

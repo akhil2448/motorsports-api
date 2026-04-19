@@ -1,14 +1,14 @@
 const db = require("../db/pool");
 const webpush = require("../src/config/webPush");
 
-async function getUnsentNotifications() {
-  const result = await db.query(
+async function getUnsentNotifications(client) {
+  const result = await client.query(
     `
     SELECT * FROM notifications
     WHERE is_sent = false
-    AND created_at >= NOW() - INTERVAL '1 day'
     ORDER BY created_at ASC
     LIMIT 20
+    FOR UPDATE SKIP LOCKED
     `,
   );
 
@@ -22,10 +22,7 @@ function formatTime(min) {
 }
 
 function buildNotificationPayload(notification) {
-  const data =
-    typeof notification.data === "string"
-      ? JSON.parse(notification.data)
-      : notification.data;
+  const data = notification.data;
 
   if (!data || !data.start_time) return null;
 

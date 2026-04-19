@@ -16,30 +16,50 @@ router.post("/run", async (req, res) => {
   }
 
   try {
-    const notifications = await getUnsentNotifications();
+    const client = await db.connect();
 
-    console.log("Processing notifications:", notifications.length);
+    try {
+      await client.query("BEGIN");
 
-    for (const notification of notifications) {
-      try {
-        if (!notification.user_id) {
-          console.log("Skipping invalid notification:", notification.id);
+      const notifications = await client.query(`
+    SELECT * FROM notifications
+    WHERE is_sent = false
+    ORDER BY created_at ASC
+    LIMIT 20
+    FOR UPDATE SKIP LOCKED
+  `);
 
-          await db.query(
-            `UPDATE notifications SET is_sent = true WHERE id = $1`,
-            [notification.id],
-          );
+      const rows = notifications.rows;
 
-          continue;
+      console.log("Processing notifications:", rows.length);
+
+      for (const notification of rows) {
+        try {
+          if (!notification.user_id) {
+            console.log("Skipping invalid notification:", notification.id);
+
+            await client.query(
+              `UPDATE notifications SET is_sent = true WHERE id = $1`,
+              [notification.id],
+            );
+            continue;
+          }
+
+          await sendPushForNotification(notification);
+        } catch (err) {
+          console.error("Push processing error:", err);
         }
-
-        await sendPushForNotification(notification);
-      } catch (err) {
-        console.error("Push processing error:", err);
       }
-    }
 
-    res.json({ success: true, processed: notifications.length });
+      await client.query("COMMIT");
+
+      res.json({ success: true, processed: rows.length });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error("Push cron error:", err);
     res.status(500).json({ error: "Cron failed" });

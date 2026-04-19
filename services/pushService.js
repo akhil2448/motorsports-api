@@ -40,17 +40,17 @@ function buildNotificationPayload(notification) {
   }
 
   // 🔥 LIVE (session started)
-  if (diffMin <= 0) {
+  if (diffMin <= 1) {
     return {
-      title: data.event_name,
-      body: `${data.series} • ${data.name} is live`,
+      title: data.series,
+      body: `${data.event_name} • ${data.name} is live`,
     };
   }
 
   // ⏳ BEFORE
   return {
-    title: data.event_name,
-    body: `${data.series} • ${data.name} in ${formatTime(diffMin)}`,
+    title: data.series,
+    body: `${data.event_name} • ${data.name} in ${formatTime(diffMin)}`,
   };
 }
 

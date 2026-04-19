@@ -93,7 +93,7 @@ router.get("/run-notifications", async (req, res) => {
           diffMinutes > 0 && diffMinutes <= notify_before_minutes;
 
         const shouldNotifyStart =
-          notify_event_start && diffMinutes <= 0 && diffMinutes >= -5; // small buffer
+          notify_event_start && diffMinutes <= 1 && diffMinutes >= -5;
 
         return shouldNotifyBefore || shouldNotifyStart;
       });

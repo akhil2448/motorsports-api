@@ -123,6 +123,9 @@ router.get("/run-notifications", async (req, res) => {
 
         const dedupeKey = `${user_id}-${unit.unit_id}-${type}`;
 
+        const title = unit.series;
+        const message = `${unit.event_name} • ${unit.name}`;
+
         await pool.query(
           `
   INSERT INTO notifications (
@@ -136,15 +139,15 @@ router.get("/run-notifications", async (req, res) => {
     dedupe_key
   )
   VALUES (
-    $1,
-    (SELECT id FROM series WHERE short_name = $2),
-    $3,
-    $4,
-    '',  -- ✅ EMPTY (computed later)
-    '',  -- ✅ EMPTY (computed later)
-    $5,
-    $6
-  )
+  $1,
+  (SELECT id FROM series WHERE short_name = $2),
+  $3,
+  $4,
+  $5,  -- ✅ title
+  $6,  -- ✅ message
+  $7,
+  $8
+)
   ON CONFLICT (dedupe_key) DO NOTHING
   `,
           [
@@ -152,6 +155,8 @@ router.get("/run-notifications", async (req, res) => {
             unit.series,
             unit.event_id,
             type,
+            title, // ✅ NEW
+            message, // ✅ NEW
             JSON.stringify({
               unit_id: unit.unit_id,
               name: unit.name,

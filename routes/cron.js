@@ -34,7 +34,7 @@ router.get("/run-notifications", async (req, res) => {
     JOIN events e ON uv.event_id = e.id
     JOIN series s ON e.series_id = s.id
     WHERE uv.start_time >= NOW() - INTERVAL '5 minutes'
-    AND uv.start_time <= NOW() + INTERVAL '30 minutes'
+    AND uv.start_time <= NOW() + INTERVAL '70 minutes'
     ORDER BY uv.start_time ASC
     `);
 
@@ -124,7 +124,13 @@ router.get("/run-notifications", async (req, res) => {
         const dedupeKey = `${user_id}-${unit.unit_id}-${type}`;
 
         const title = unit.series;
-        const message = `${unit.event_name} • ${unit.name}`;
+        let message;
+
+        if (type === "START") {
+          message = `${unit.event_name} • ${unit.name} is live`;
+        } else {
+          message = `${unit.event_name} • ${unit.name} starting soon`;
+        }
 
         await pool.query(
           `

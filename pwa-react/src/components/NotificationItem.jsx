@@ -7,14 +7,16 @@ import wrcLogo from "../assets/logos/wrc.svg";
 import indycarLogo from "../assets/logos/indycar.svg";
 import gtwcLogo from "../assets/logos/gtwc.svg";
 import dtmLogo from "../assets/logos/dtm.svg";
+import ttLogo from "../assets/logos/tt.svg";
 
 const logoMap = {
   F1: f1Logo,
   WRC: wrcLogo,
-  MOTOGP: motogpLogo,
-  INDYCAR: indycarLogo,
+  MotoGP: motogpLogo,
+  IndyCar: indycarLogo,
   GTWC: gtwcLogo,
   DTM: dtmLogo,
+  TT: ttLogo,
 };
 
 const normalizeSeries = (series) => {
@@ -27,6 +29,7 @@ const normalizeSeries = (series) => {
   if (s === "MOTOGP") return "MotoGP";
   if (s === "INDYCAR") return "IndyCar";
   if (s === "DTM") return "DTM";
+  if (s === "TT") return "TT";
 
   if (s.includes("GTWC")) return "GTWC";
 

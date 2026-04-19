@@ -22,36 +22,20 @@ router.post("/run", async (req, res) => {
       await client.query("BEGIN");
 
       const notifications = await client.query(`
-    SELECT * FROM notifications
-    WHERE is_sent = false
-    ORDER BY created_at ASC
-    LIMIT 20
-    FOR UPDATE SKIP LOCKED
-  `);
+  SELECT * FROM notifications
+  WHERE is_sent = false
+  ORDER BY created_at ASC
+  LIMIT 20
+  FOR UPDATE SKIP LOCKED
+`);
+
+      await client.query("COMMIT"); // 🔥 release locks EARLY
 
       const rows = notifications.rows;
 
-      console.log("Processing notifications:", rows.length);
-
       for (const notification of rows) {
-        try {
-          if (!notification.user_id) {
-            console.log("Skipping invalid notification:", notification.id);
-
-            await client.query(
-              `UPDATE notifications SET is_sent = true WHERE id = $1`,
-              [notification.id],
-            );
-            continue;
-          }
-
-          await sendPushForNotification(notification);
-        } catch (err) {
-          console.error("Push processing error:", err);
-        }
+        await sendPushForNotification(notification); // now safe
       }
-
-      await client.query("COMMIT");
 
       res.json({ success: true, processed: rows.length });
     } catch (err) {

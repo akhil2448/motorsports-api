@@ -129,7 +129,9 @@ router.get("/run-notifications", async (req, res) => {
         if (type === "START") {
           message = `${unit.event_name} • ${unit.name} is live`;
         } else {
-          message = `${unit.event_name} • ${unit.name} starting soon`;
+          const diffMinutes = Math.round((startTime - now) / 60000);
+
+          message = `${unit.event_name} • ${unit.name} starting in ${diffMinutes} min`;
         }
 
         await pool.query(

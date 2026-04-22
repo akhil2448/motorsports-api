@@ -129,16 +129,19 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
     // =========================
     // 🔔 CREATE NOTIFICATION
     // =========================
+    const isNew = !existingHash;
+
     await createNotificationsForUsers({
       seriesId,
       eventId: event.id,
-      type: "event_updated",
+      type: isNew ? "schedule_released" : "schedule_updated",
 
-      // ✅ Short action-based title
-      title: "Schedule updated",
+      // ✅ NEW FORMAT
+      title: "GTWC",
 
-      // ✅ Structured message for app + push
-      message: `GTWC|${event.event_name}|sessions have been updated`,
+      message: `${event.event_name} • ${
+        isNew ? "Schedule Released" : "Schedule Updated"
+      }`,
 
       data: {
         old_hash: existingHash,
@@ -146,7 +149,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
         sessions_count: sessions.length,
       },
 
-      dedupeKey: `gtwc_event_${event.id}_hash_${hash}`,
+      dedupeKey: `gtwc_event_${event.id}_schedule_${isNew ? "released" : "updated"}_${hash}`,
     });
 
     console.log(`Notification created for ${event.event_name}`);

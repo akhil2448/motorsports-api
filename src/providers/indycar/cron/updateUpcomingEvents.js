@@ -4,6 +4,7 @@ const {
   buildTrackTimesFromLocal,
 } = require("../../../../utils/buildTrackTimes");
 const { randomUUID } = require("crypto");
+const crypto = require("crypto");
 
 /**
  * 🔔 Notification helper
@@ -11,7 +12,6 @@ const { randomUUID } = require("crypto");
 async function createNotificationsForUsers(payload) {
   const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
 
-  // 🔥 IndyCar short_name = INDYCAR
   const usersRes = await db.query(
     `
     SELECT user_id
@@ -21,9 +21,7 @@ async function createNotificationsForUsers(payload) {
     ["INDYCAR"],
   );
 
-  const users = usersRes.rows;
-
-  for (const user of users) {
+  for (const user of usersRes.rows) {
     const userDedupeKey = `${user.user_id}-${dedupeKey}`;
 
     await db.query(
@@ -79,42 +77,55 @@ function parseDate(dayStr, year) {
   return isNaN(date) ? null : date.toISOString().split("T")[0];
 }
 
-async function getAllIndycarEvents() {
-  const query = `
-    SELECT id, slug, event_name, end_date, series_id
-    FROM events
-    WHERE series_id = 4
-      AND slug IS NOT NULL
-  `;
+/**
+ * 🔥 HASH GENERATOR (CRITICAL)
+ */
+function generateSessionsHash(schedule, year) {
+  const normalized = schedule
+    .map((s) => {
+      const times = buildTrackTimesFromLocal({
+        dayStr: s.day,
+        timeStr: s.time,
+        year,
+        zone: "America/New_York",
+      });
 
-  const res = await db.query(query);
-  return res.rows;
+      return {
+        name: s.description,
+        time: times.start_time,
+      };
+    })
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  return crypto
+    .createHash("md5")
+    .update(JSON.stringify(normalized))
+    .digest("hex");
 }
 
 /**
- * Fetch events within 2 weeks needing update
+ * Fetch events needing update
  */
 async function getUpcomingEvents() {
-  const query = `
+  const res = await db.query(`
     SELECT id, slug, event_name, end_date, series_id
     FROM events
     WHERE series_id = 4
       AND start_date IS NULL
       AND end_date IS NOT NULL
       AND end_date <= NOW() + INTERVAL '14 days'
-  `;
+  `);
 
-  const res = await db.query(query);
   return res.rows;
 }
 
 /**
- * Insert / Update sessions
+ * Insert sessions (fresh insert)
  */
 async function insertSessions(eventId, slug, schedule, year) {
-  for (let i = 0; i < schedule.length; i++) {
-    const s = schedule[i];
+  let order = 1;
 
+  for (const s of schedule) {
     const times = buildTrackTimesFromLocal({
       dayStr: s.day,
       timeStr: s.time,
@@ -122,20 +133,9 @@ async function insertSessions(eventId, slug, schedule, year) {
       zone: "America/New_York",
     });
 
-    const session = {
-      session_name: s.description.replace("NTT INDYCAR SERIES - ", "").trim(),
-      session_type: normalizeSessionType(s.description),
-
-      start_time_utc: times.start_time,
-      end_time_utc: null,
-
-      start_time_local: times.start_time_local,
-      end_time_local: null,
-      event_timezone: times.event_timezone,
-
-      session_order: i + 1,
-      external_session_id: `${slug}_${i + 1}`,
-    };
+    const session_name = s.description
+      .replace("NTT INDYCAR SERIES - ", "")
+      .trim();
 
     await db.query(
       `
@@ -152,54 +152,50 @@ async function insertSessions(eventId, slug, schedule, year) {
         external_session_id
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      ON CONFLICT (event_id, external_session_id)
-      DO UPDATE SET
-        session_name = EXCLUDED.session_name,
-        session_type = EXCLUDED.session_type,
-        start_time_utc = EXCLUDED.start_time_utc,
-        end_time_utc = EXCLUDED.end_time_utc,
-        start_time_local = EXCLUDED.start_time_local,
-        end_time_local = EXCLUDED.end_time_local,
-        event_timezone = EXCLUDED.event_timezone,
-        session_order = EXCLUDED.session_order;
       `,
       [
         eventId,
-        session.session_name,
-        session.session_type,
-        session.start_time_utc,
-        session.end_time_utc,
-        session.start_time_local,
-        session.end_time_local,
-        session.event_timezone,
-        session.session_order,
-        session.external_session_id,
+        session_name,
+        normalizeSessionType(s.description),
+        times.start_time,
+        null,
+        times.start_time_local,
+        null,
+        times.event_timezone,
+        order,
+        `${slug}_${order}`,
       ],
     );
+
+    order++;
   }
+
+  return schedule.length;
 }
 
 /**
- * Main Cron Logic
+ * MAIN
  */
 async function updateUpcomingEvents() {
   console.log("⏳ Checking upcoming IndyCar events...");
 
   const events = await getUpcomingEvents();
-  //const events = await getAllIndycarEvents();
 
   if (!events.length) {
     console.log("✅ No events need updating");
     return;
   }
 
+  const currentYear = new Date().getFullYear();
+
   for (const event of events) {
-    const { id, slug, event_name, end_date, series_id } = event;
+    const { id, slug, event_name, series_id } = event;
 
     console.log(`\nProcessing: ${slug}`);
 
-    const url = `https://www.indycar.com/Schedule/2026/${slug}`;
+    const url = `https://www.indycar.com/Schedule/${currentYear}/${slug}`;
     const details = await fetchIndycarEventDetails(url);
+
     const schedule = details.schedule;
 
     if (!schedule || schedule.length <= 1) {
@@ -207,63 +203,61 @@ async function updateUpcomingEvents() {
       continue;
     }
 
-    const existingRes = await db.query(
-      `SELECT COUNT(*) FROM sessions WHERE event_id = $1`,
-      [id],
-    );
+    const newHash = generateSessionsHash(schedule, currentYear);
 
-    const existingCount = parseInt(existingRes.rows[0].count, 10);
+    const res = await db.query(`SELECT pdf_hash FROM events WHERE id = $1`, [
+      id,
+    ]);
 
-    const firstDate = parseDate(schedule[0].day, "2026");
+    const existingHash = res.rows[0]?.pdf_hash || null;
 
-    await db.query(
-      `
-      UPDATE events
-      SET start_date = $1
-      WHERE id = $2
-      `,
-      [firstDate, id],
-    );
+    if (existingHash && existingHash === newHash) {
+      console.log(`⏭️ No changes: ${event_name}`);
+      continue;
+    }
+
+    const firstDate = parseDate(schedule[0].day, currentYear);
+
+    await db.query(`UPDATE events SET start_date = $1 WHERE id = $2`, [
+      firstDate,
+      id,
+    ]);
 
     console.log("→ start_date updated");
 
-    await insertSessions(id, slug, schedule, "2026");
+    // 🔥 DELETE OLD SESSIONS
+    await db.query(`DELETE FROM sessions WHERE event_id = $1`, [id]);
 
-    console.log("→ sessions upserted");
+    const insertedCount = await insertSessions(id, slug, schedule, currentYear);
 
-    if (existingCount === 0) {
-      await createNotificationsForUsers({
-        seriesId: series_id,
-        eventId: id,
-        type: "schedule_released",
+    console.log("→ sessions replaced");
 
-        // ✅ Short action-based title
-        title: "Schedule released",
+    // 🔄 UPDATE HASH
+    await db.query(`UPDATE events SET pdf_hash = $1 WHERE id = $2`, [
+      newHash,
+      id,
+    ]);
 
-        // ✅ Structured message for app + push
-        message: `INDYCAR|${event_name}|schedule is now live`,
+    const isNew = !existingHash;
 
-        data: {
-          sessions_count: schedule.length,
-        },
+    await createNotificationsForUsers({
+      seriesId: series_id,
+      eventId: id,
+      type: isNew ? "schedule_released" : "schedule_updated",
+      title: "INDYCAR",
+      message: `${event_name} • ${
+        isNew ? "Schedule Released" : "Schedule Updated"
+      }`,
+      data: {
+        sessions_count: insertedCount,
+      },
+      dedupeKey: `indycar_event_${id}_schedule_${isNew ? "released" : "updated"}_${newHash}`,
+    });
 
-        dedupeKey: `indycar_event_${id}_schedule_released`,
-      });
-
-      console.log("🔔 Notification created (schedule released)");
-    }
+    console.log("🔔 Notification created");
   }
 
-  console.log("\n✅ Upcoming events update completed");
-}
-
-if (require.main === module) {
-  updateUpcomingEvents()
-    .then(() => process.exit(0))
-    .catch((err) => {
-      console.error(err);
-      process.exit(1);
-    });
+  console.log("\n✅ IndyCar update completed");
 }
 
 module.exports = { updateUpcomingEvents };

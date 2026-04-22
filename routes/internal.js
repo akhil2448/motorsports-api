@@ -2,10 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  ingestLatestPdfStages,
-} = require("../src/services/wrc/wrcStageService");
-
-const { updateWRCStages } = require("../src/services/wrc/cron/updateWRCStages");
+  updateWRCStages,
+} = require("../src/providers/wrc/cron/updateWrcStages");
 
 const {
   updateUpcomingEvents,
@@ -35,76 +33,34 @@ function verifyCron(req, res, next) {
 }
 
 /**
- * WRC PDF ingestion (background)
+ * 🚀 UNIFIED INGESTION (non-blocking)
  */
-router.get("/wrc-pdf", verifyCron, async (req, res) => {
-  console.log("🌐 WRC cron triggered");
+router.post("/run-ingestion", verifyCron, async (req, res) => {
+  console.log("🌐 Ingestion cron triggered");
 
-  updateWRCStages()
-    .then(() => console.log("✅ WRC ingestion completed"))
-    .catch((err) => console.error("❌ WRC ingestion failed:", err.message));
+  // 🔥 Run ALL jobs in background (non-blocking)
+  Promise.allSettled([
+    updateWRCStages(),
+    updateUpcomingEvents(),
+    updateDtmSessions(),
+    updateGTWCSessions(),
+    ingestTT(),
+  ])
+    .then((results) => {
+      console.log("✅ Ingestion completed");
 
-  res.json({ status: "WRC triggered" });
-});
+      results.forEach((r, i) => {
+        if (r.status === "rejected") {
+          console.error(`❌ Job ${i} failed:`, r.reason?.message);
+        }
+      });
+    })
+    .catch((err) => {
+      console.error("❌ Ingestion error:", err.message);
+    });
 
-/**
- * IndyCar schedule update
- */
-router.get("/indycar-update", verifyCron, async (req, res) => {
-  console.log("🌐 IndyCar cron triggered");
-
-  try {
-    await updateUpcomingEvents();
-    res.json({ status: "IndyCar completed" });
-  } catch (err) {
-    console.error("❌ IndyCar cron failed:", err);
-    res.status(500).json({ error: "IndyCar cron failed" });
-  }
-});
-
-/**
- * DTM schedule update
- */
-router.get("/dtm-update", verifyCron, async (req, res) => {
-  console.log("🌐 DTM cron triggered");
-
-  try {
-    await updateDtmSessions();
-    res.json({ status: "DTM completed" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "DTM cron failed" });
-  }
-});
-
-/**
- * GTWC schedule update (NEW)
- */
-router.get("/gtwc-update", verifyCron, async (req, res) => {
-  console.log("🌐 GTWC cron triggered");
-
-  try {
-    await updateGTWCSessions();
-    res.json({ status: "GTWC completed" });
-  } catch (err) {
-    console.error("❌ GTWC cron failed:", err);
-    res.status(500).json({ error: "GTWC cron failed" });
-  }
-});
-
-/**
- * 🏁 TT schedule update (NEW)
- */
-router.get("/tt-update", verifyCron, async (req, res) => {
-  console.log("🌐 TT cron triggered");
-
-  try {
-    await ingestTT(); // ✅ wait for completion
-    res.json({ status: "TT completed" });
-  } catch (err) {
-    console.error("❌ TT ingestion failed:", err);
-    res.status(500).json({ error: "TT cron failed" });
-  }
+  // ✅ RETURN IMMEDIATELY (CRITICAL)
+  res.json({ status: "Ingestion triggered" });
 });
 
 module.exports = router;

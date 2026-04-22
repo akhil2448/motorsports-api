@@ -2,6 +2,7 @@ const db = require("../../../../db/pool");
 const axios = require("axios");
 const { randomUUID } = require("crypto");
 const { DateTime } = require("luxon");
+const crypto = require("crypto");
 
 const BASE_API = "https://api.dtm.com/data";
 
@@ -19,13 +20,27 @@ function getTimezone(countryCode) {
   return map[countryCode] || "Europe/Berlin";
 }
 
+function generateSessionsHash(sessions) {
+  const normalized = sessions
+    .map((s) => ({
+      name: s.label,
+      start: s.start,
+      end: s.end,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return crypto
+    .createHash("md5")
+    .update(JSON.stringify(normalized))
+    .digest("hex");
+}
+
 /**
  * 🔔 Notification helper
  */
 async function createNotificationsForUsers(payload) {
   const { seriesId, eventId, type, title, message, data, dedupeKey } = payload;
 
-  // 🔥 DTM short_name = DTM
   const usersRes = await db.query(
     `
     SELECT user_id
@@ -35,9 +50,7 @@ async function createNotificationsForUsers(payload) {
     ["DTM"],
   );
 
-  const users = usersRes.rows;
-
-  for (const user of users) {
+  for (const user of usersRes.rows) {
     const userDedupeKey = `${user.user_id}-${dedupeKey}`;
 
     await db.query(
@@ -71,71 +84,43 @@ async function createNotificationsForUsers(payload) {
   }
 }
 
-/**
- * Normalize session type
- */
 function normalizeSessionType(label) {
   const l = label.toLowerCase();
-
   if (l.includes("practice")) return "Practice";
   if (l.includes("qual")) return "Qualifying";
   if (l.includes("race")) return "Race";
-
   return "Other";
 }
 
-/**
- * Get upcoming DTM events (within 14 days)
- */
 async function getUpcomingEvents() {
-  const query = `
+  const res = await db.query(`
     SELECT id, slug, event_name, start_date, series_id
     FROM events
     WHERE series_id = 5
       AND start_date IS NOT NULL
       AND start_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
-  `;
-
-  const res = await db.query(query);
+  `);
   return res.rows;
 }
 
-/**
- * Check if sessions already exist
- */
-// async function sessionsExist(eventId) {
-//   const res = await db.query(
-//     `SELECT 1 FROM sessions WHERE event_id = $1 LIMIT 1`,
-//     [eventId],
-//   );
-
-//   return res.rows.length > 0;
-// }
-
-/**
- * Fetch event details
- */
 async function fetchEventDetails(slug) {
   const url = `${BASE_API}?query=eventDetails&slug=${slug}&lang=en`;
   const { data } = await axios.get(url);
   return data.events?.[0] || null;
 }
 
-/**
- * Insert sessions
- */
 async function insertSessions(eventId, slug, timetable, eventTimezone) {
   const dtmSessions = timetable.filter((t) => t?.raceSeries === "DTM");
 
-  for (let i = 0; i < dtmSessions.length; i++) {
-    const s = dtmSessions[i];
+  let order = 1;
 
+  for (const s of dtmSessions) {
     const utcStart = s.start
       ? DateTime.fromISO(s.start, { zone: "utc" })
       : null;
+
     const utcEnd = s.end ? DateTime.fromISO(s.end, { zone: "utc" }) : null;
 
-    // 👇 get timezone from event (we’ll pass it)
     const localStart = utcStart ? utcStart.setZone(eventTimezone) : null;
     const localEnd = utcEnd ? utcEnd.setZone(eventTimezone) : null;
 
@@ -145,38 +130,31 @@ async function insertSessions(eventId, slug, timetable, eventTimezone) {
 
     await db.query(
       `
-  INSERT INTO sessions (
-    event_id,
-    session_name,
-    session_type,
-    start_time_utc,
-    end_time_utc,
-    start_time_local,
-    end_time_local,
-    event_timezone,
-    session_order,
-    external_session_id
-  )
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-  ON CONFLICT (event_id, external_session_id)
-  DO NOTHING;
-  `,
+      INSERT INTO sessions (
+        event_id,
+        session_name,
+        session_type,
+        start_time_utc,
+        end_time_utc,
+        start_time_local,
+        end_time_local,
+        event_timezone,
+        session_order,
+        external_session_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      `,
       [
         eventId,
         s.label,
         normalizeSessionType(s.label),
-
         utcStart?.toISO() || null,
         utcEnd?.toISO() || null,
-
         localStart?.toFormat("yyyy-MM-dd HH:mm:ss") || null,
         localEnd?.toFormat("yyyy-MM-dd HH:mm:ss") || null,
-
         event_timezone,
-
-        i + 1,
-
-        `${slug}_${utcStart?.toISO()}_${i + 1}`,
+        order++,
+        `${slug}_${utcStart?.toISO()}_${order}`,
       ],
     );
   }
@@ -185,29 +163,17 @@ async function insertSessions(eventId, slug, timetable, eventTimezone) {
 }
 
 /**
- * Main cron job
+ * MAIN
  */
 async function updateDtmSessions() {
   console.log("⏳ Checking DTM events...");
 
   const events = await getUpcomingEvents();
 
-  if (!events.length) {
-    console.log("✅ No upcoming DTM events");
-    return;
-  }
-
   for (const event of events) {
     const { id, slug, series_id } = event;
 
     console.log(`\nProcessing: ${event.event_name}`);
-
-    // 👉 Skip if already inserted
-    // const exists = await sessionsExist(id);
-    // if (exists) {
-    //   console.log("→ Sessions already exist, skipping");
-    //   continue;
-    // }
 
     const details = await fetchEventDetails(slug);
     if (!details) continue;
@@ -219,10 +185,25 @@ async function updateDtmSessions() {
       continue;
     }
 
-    console.log("→ Timetable available, inserting sessions");
+    const dtmSessions = timetable.filter((t) => t?.raceSeries === "DTM");
+    const newHash = generateSessionsHash(dtmSessions);
+
+    const res = await db.query(`SELECT pdf_hash FROM events WHERE id = $1`, [
+      id,
+    ]);
+
+    const existingHash = res.rows[0]?.pdf_hash || null;
+
+    if (existingHash && existingHash === newHash) {
+      console.log(`⏭️ No changes: ${event.event_name}`);
+      continue;
+    }
 
     const countryCode = details.country?.countryCode;
     const eventTimezone = getTimezone(countryCode);
+
+    // 🔥 CRITICAL FIX: delete old sessions
+    await db.query(`DELETE FROM sessions WHERE event_id = $1`, [id]);
 
     const insertedCount = await insertSessions(
       id,
@@ -231,49 +212,32 @@ async function updateDtmSessions() {
       eventTimezone,
     );
 
-    console.log("→ Sessions inserted");
+    if (insertedCount === 0) continue;
 
-    // ⚠️ Guard: no notification if nothing inserted
-    if (insertedCount === 0) {
-      console.log("→ No DTM sessions found, skipping notification");
-      continue;
-    }
+    // 🔄 Update hash
+    await db.query(`UPDATE events SET pdf_hash = $1 WHERE id = $2`, [
+      newHash,
+      id,
+    ]);
 
-    // =========================
-    // 🔔 CREATE NOTIFICATION
-    // =========================
+    const isNew = !existingHash;
+
     await createNotificationsForUsers({
       seriesId: series_id,
       eventId: id,
-      type: "schedule_released",
-
-      // ✅ Short action-based title
-      title: "Schedule released",
-
-      // ✅ Structured message for app + push formatting
-      message: `DTM|${event.event_name}|schedule is now live`,
-
-      data: {
-        sessions_count: insertedCount,
-      },
-
-      dedupeKey: `dtm_event_${id}_schedule_released`,
+      type: isNew ? "schedule_released" : "schedule_updated",
+      title: "DTM",
+      message: `${event.event_name} • ${
+        isNew ? "Schedule Released" : "Schedule Updated"
+      }`,
+      data: { sessions_count: insertedCount },
+      dedupeKey: `dtm_event_${id}_schedule_${isNew ? "released" : "updated"}_${newHash}`,
     });
 
-    console.log("🔔 Notification created (schedule released)");
+    console.log("🔔 Notification created");
   }
 
   console.log("\n✅ DTM cron completed");
-}
-
-// 👇 run manually
-if (require.main === module) {
-  updateDtmSessions()
-    .then(() => process.exit(0))
-    .catch((err) => {
-      console.error(err);
-      process.exit(1);
-    });
 }
 
 module.exports = { updateDtmSessions };

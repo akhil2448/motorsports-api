@@ -3,6 +3,7 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const pool = require("../../../db/pool");
+const cheerio = require("cheerio");
 
 const BASE_URL = "https://p-p.redbull.com/rb-wrccom-lintegration-yv-prod/api";
 
@@ -85,19 +86,56 @@ async function findPdfViaApi(eventId) {
 /* ---------------------------------- */
 
 async function findPdfViaHtml(slug) {
-  if (!slug) return null;
-
-  const url = `https://www.wrc.com/en/events/${slug}/itinerary-${slug}`;
-
+  const url = `https://www.wrc.com/en/events/${slug}/`;
   const res = await safeGet(url);
 
   if (!res || res.status !== 200) return null;
 
-  const html = res.data;
+  const $ = cheerio.load(res.data);
 
-  const match = html.match(/https:\/\/[^\s"]+\.pdf/i);
+  let candidates = [];
 
-  return match ? match[0] : null;
+  $("a[href$='.pdf']").each((_, el) => {
+    const href = $(el).attr("href");
+    const text = $(el).text().toLowerCase();
+
+    if (!href) return;
+
+    candidates.push({
+      href,
+      text,
+    });
+  });
+
+  if (!candidates.length) return null;
+
+  console.log("PDF candidates:", candidates);
+
+  // ✅ PRIORITY 1: itinerary in URL
+  let match =
+    candidates.find((c) => c.href.toLowerCase().includes("itinerary")) ||
+    // ✅ PRIORITY 2: schedule in URL
+    candidates.find((c) => c.href.toLowerCase().includes("schedule")) ||
+    // ✅ PRIORITY 3: text match
+    candidates.find(
+      (c) => c.text.includes("itinerary") || c.text.includes("schedule"),
+    );
+
+  if (!match) {
+    console.log("⚠️ No itinerary match, using first PDF as fallback");
+    match = candidates[0];
+  }
+
+  let pdfUrl = match.href;
+
+  // 🔥 FIX: handle relative URLs
+  if (pdfUrl.startsWith("/")) {
+    pdfUrl = `https://www.wrc.com${pdfUrl}`;
+  }
+
+  console.log("✅ Selected PDF:", pdfUrl);
+
+  return pdfUrl;
 }
 
 /* ---------------------------------- */

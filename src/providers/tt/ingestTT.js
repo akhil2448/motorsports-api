@@ -72,14 +72,16 @@ async function ingestTT() {
 
       const type = isFirstTime ? "schedule_released" : "schedule_updated";
 
-      const title = isFirstTime ? "Schedule released" : "Schedule updated";
+      const title = "TT";
 
-      const message = isFirstTime
-        ? "TT|Isle of Man TT|schedule is now live"
-        : "TT|Isle of Man TT|schedule updated";
+      const eventName = normalized.eventName || "Isle of Man TT";
+
+      const message = `${eventName} • ${
+        isFirstTime ? "Schedule Released" : "Schedule Updated"
+      }`;
 
       for (const user of users) {
-        const dedupeKey = `${user.user_id}-tt_event_${event.id}_${normalized.hash}`;
+        const dedupeKey = `${user.user_id}-tt_event_${event.id}_schedule_${normalized.hash}`;
 
         await db.query(
           `

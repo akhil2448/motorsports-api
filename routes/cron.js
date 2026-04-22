@@ -15,6 +15,17 @@ function verifyCron(req, res, next) {
   next();
 }
 
+function getSessionPriority(name = "") {
+  const n = name.toLowerCase();
+
+  if (n.includes("race")) return 4;
+  if (n.includes("qual")) return 3;
+  if (n.includes("sprint")) return 2;
+  if (n.includes("practice")) return 1;
+
+  return 0;
+}
+
 /**
  * GET /api/cron/run-notifications
  * 🔥 SAME LOGIC — but hardened + safe
@@ -306,33 +317,55 @@ router.post("/generate-notifications", verifyCron, async (req, res) => {
 
       if (!userUnits.length) continue;
 
-      const eligibleUnits = userUnits.filter((unit) => {
-        const startTime = new Date(unit.start_time);
-        const diffMinutes = (startTime - now) / (1000 * 60);
+      // STEP 1: Build candidates
+      const candidates = [];
 
-        return (
-          (diffMinutes > 0 && diffMinutes <= notify_before_minutes) ||
-          (notify_event_start && diffMinutes <= 1 && diffMinutes >= -5)
-        );
-      });
-
-      for (const unit of eligibleUnits) {
+      for (const unit of userUnits) {
         const startTime = new Date(unit.start_time);
         const diffMinutes = (startTime - now) / (1000 * 60);
 
         let type = null;
 
-        if (diffMinutes > 0 && diffMinutes <= notify_before_minutes) {
-          type = "BEFORE";
-        } else if (
-          notify_event_start &&
-          diffMinutes <= 0 &&
-          diffMinutes >= -5
-        ) {
+        const beforeWindow =
+          diffMinutes > 0 &&
+          diffMinutes <= notify_before_minutes &&
+          diffMinutes >= notify_before_minutes - 5;
+
+        const startWindow =
+          notify_event_start && diffMinutes <= 1 && diffMinutes >= -2;
+
+        if (startWindow) {
           type = "START";
+        } else if (beforeWindow) {
+          type = "BEFORE";
         }
 
         if (!type) continue;
+
+        candidates.push({
+          unit,
+          type,
+          diffMinutes,
+          priority: getSessionPriority(unit.name),
+        });
+      }
+
+      // STEP 2: SORT (most important first)
+      candidates.sort((a, b) => {
+        if (a.type !== b.type) {
+          return a.type === "START" ? -1 : 1;
+        }
+        return b.priority - a.priority;
+      });
+
+      // STEP 3: pick top (avoid spam)
+      const eligibleUnits = candidates.slice(0, 3);
+
+      // STEP 4: INSERT notifications
+      for (const item of eligibleUnits) {
+        const unit = item.unit;
+        const type = item.type;
+        const diffMinutes = item.diffMinutes;
 
         const dedupeKey = `${user_id}-${unit.unit_id}-${type}`;
 
@@ -341,8 +374,9 @@ router.post("/generate-notifications", verifyCron, async (req, res) => {
         const message =
           type === "START"
             ? `${unit.event_name} • ${unit.name} is live`
-            : `${unit.event_name} • ${unit.name} starting in ${Math.round(
-                diffMinutes,
+            : `${unit.event_name} • ${unit.name} starting in ${Math.max(
+                0,
+                Math.ceil(diffMinutes),
               )} min`;
 
         await pool.query(

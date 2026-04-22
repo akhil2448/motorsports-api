@@ -9,7 +9,7 @@ async function updateGTWCSessions() {
       SELECT *
       FROM events
       WHERE series_id = (
-        SELECT id FROM series WHERE short_name = 'GTWC Europe'
+        SELECT id FROM series WHERE short_name = 'GTWC'
       )
       AND start_date <= NOW() + INTERVAL '14 days'
       AND end_date >= NOW() - INTERVAL '1 day'

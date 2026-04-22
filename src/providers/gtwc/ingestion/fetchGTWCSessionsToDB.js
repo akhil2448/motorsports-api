@@ -60,6 +60,11 @@ async function upsertGTWCSessions(event) {
 
     const { sessions, hash } = sessionData;
 
+    if (!sessions || sessions.length === 0) {
+      console.warn(`⚠️ No sessions found for ${event.event_name}`);
+      return;
+    }
+
     // 🔍 Get existing hash
     const res = await db.query(
       `SELECT id, pdf_hash, series_id FROM events WHERE id = $1`,

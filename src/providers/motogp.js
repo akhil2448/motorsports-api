@@ -122,4 +122,8 @@ async function fetch() {
   };
 }
 
+if (require.main === module) {
+  fetch();
+}
+
 module.exports = { fetch };

@@ -1,11 +1,16 @@
 const axios = require("axios");
 const pool = require("../../../db/pool");
 
-const SERIES_ID = 2; // WRC (based on your DB)
-
 const countries = require("i18n-iso-countries");
 const enLocale = require("i18n-iso-countries/langs/en.json");
 countries.registerLocale(enLocale);
+
+async function getSeriesId() {
+  const res = await pool.query(
+    `SELECT id FROM series WHERE short_name = 'WRC' LIMIT 1`,
+  );
+  return res.rows[0].id;
+}
 
 // --- Dynamic year (no hardcoding)
 function getYearsToCheck() {
@@ -96,7 +101,7 @@ function buildCalendarMap(calendarData) {
 }
 
 // --- UPSERT query
-async function upsertEvent(event) {
+async function upsertEvent(event, seriesId) {
   const query = `
 INSERT INTO events (
   series_id,
@@ -108,7 +113,7 @@ INSERT INTO events (
   ewrc_event_id
 )
 VALUES ($1,$2,$3,$4,$5,$6,$7)
-ON CONFLICT (ewrc_event_id)
+ON CONFLICT (series_id, ewrc_event_id)
 DO UPDATE SET
   event_name = EXCLUDED.event_name,
   country = EXCLUDED.country,
@@ -118,7 +123,7 @@ DO UPDATE SET
 `;
 
   const values = [
-    SERIES_ID,
+    seriesId,
     event.event_name,
     event.country,
     event.start_date,
@@ -133,6 +138,8 @@ DO UPDATE SET
 // --- MAIN FUNCTION
 async function fetchWrcEvents() {
   console.log("🔄 Syncing WRC events...");
+
+  const seriesId = await getSeriesId();
 
   const years = getYearsToCheck();
 
@@ -164,7 +171,7 @@ async function fetchWrcEvents() {
       };
 
       try {
-        await upsertEvent(normalized);
+        await upsertEvent(normalized, seriesId);
         console.log(`✅ Upserted: ${normalized.event_name}`);
       } catch (err) {
         console.error(`❌ Failed for ${event.id}`, err.message);

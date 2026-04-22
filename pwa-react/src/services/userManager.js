@@ -8,38 +8,16 @@ export function getOrCreateUser() {
   userPromise = (async () => {
     let userId = localStorage.getItem("user_id");
 
-    // existing user
-    if (userId) {
-      await fetch(`${API_BASE}/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_id: userId }),
-      });
-
-      return userId;
+    if (!userId) {
+      userId = crypto.randomUUID();
+      localStorage.setItem("user_id", userId);
     }
 
-    // 🔥 generate FIRST and save immediately
-    userId = crypto.randomUUID();
-
-    localStorage.setItem("user_id", userId);
-
-    try {
-      await fetch(`${API_BASE}/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_id: userId }),
-      });
-    } catch (err) {
-      console.error("User bootstrap failed:", err);
-
-      // optional rollback:
-      // localStorage.removeItem("user_id");
-    }
+    await fetch(`${API_BASE}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId }),
+    });
 
     return userId;
   })();

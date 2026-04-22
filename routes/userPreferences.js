@@ -21,7 +21,7 @@ router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    await ensureUserExists(userId);
+    // await ensureUserExists(userId);
 
     let result = await db.query(
       `SELECT * FROM user_preferences WHERE user_id = $1`,
@@ -30,21 +30,12 @@ router.get("/:userId", async (req, res) => {
 
     // ✅ if not found → create default
     if (result.rows.length === 0) {
-      const insert = await db.query(
-        `
-        INSERT INTO user_preferences (
-          user_id,
-          followed_series,
-          notify_before_minutes,
-          notify_event_start
-        )
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-        `,
-        [userId, [], 10, true],
-      );
-
-      return res.json(insert.rows[0]);
+      return res.json({
+        user_id: userId,
+        followed_series: [],
+        notify_before_minutes: 10,
+        notify_event_start: true,
+      });
     }
 
     return res.json(result.rows[0]);

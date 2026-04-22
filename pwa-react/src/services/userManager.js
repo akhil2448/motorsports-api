@@ -8,16 +8,11 @@ export function getOrCreateUser() {
   userPromise = (async () => {
     let userId = localStorage.getItem("user_id");
 
+    // ✅ ONLY generate locally
     if (!userId) {
       userId = crypto.randomUUID();
       localStorage.setItem("user_id", userId);
     }
-
-    await fetch(`${API_BASE}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId }),
-    });
 
     return userId;
   })();

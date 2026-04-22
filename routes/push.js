@@ -17,6 +17,15 @@ router.post("/subscribe", async (req, res) => {
       });
     }
 
+    await db.query(
+      `
+  INSERT INTO users (id)
+  VALUES ($1)
+  ON CONFLICT (id) DO NOTHING
+  `,
+      [userId],
+    );
+
     const { endpoint, keys } = req.body;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {

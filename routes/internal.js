@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  updateWRCStages,
+  updateWrcStages,
 } = require("../src/providers/wrc/cron/updateWrcStages");
 
 const {
@@ -40,7 +40,7 @@ router.post("/run-ingestion", verifyCron, async (req, res) => {
 
   // 🔥 Run ALL jobs in background (non-blocking)
   Promise.allSettled([
-    updateWRCStages(),
+    updateWrcStages(),
     updateUpcomingEvents(),
     updateDtmSessions(),
     updateGTWCSessions(),

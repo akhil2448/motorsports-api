@@ -20,4 +20,4 @@ if (require.main === module) {
   updateWrcStages();
 }
 
-module.exports = updateWrcStages;
+module.exports = { updateWrcStages };

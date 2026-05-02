@@ -140,7 +140,16 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   const highlightSession = currentSession || nextSession || null;
 
   // ✅ USE BACKEND STATUS (source of truth)
-  let eventStatus = event.status || "completed";
+  let eventStatus = event.status;
+
+  // 🚨 FIX: no sessions → NOT completed
+  if (!eventStatus) {
+    if (!sessions || sessions.length === 0) {
+      eventStatus = "TBA"; // or "tbd" if you want custom UI
+    } else {
+      eventStatus = "completed";
+    }
+  }
 
   const formatDateRange = (start, end) => {
     const month = start.toLocaleDateString("en-US", {

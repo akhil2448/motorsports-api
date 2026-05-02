@@ -24,7 +24,7 @@ async function getUpcomingEvents() {
   ORDER BY e.start_date ASC;
 `;
 
-  const res = await pool.query(query, [SERIES_ID]);
+  const res = await pool.query(query);
 
   console.log(`📅 Found ${res.rows.length} upcoming WRC events`);
 

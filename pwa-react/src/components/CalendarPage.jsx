@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CalendarSeriesCard from "./CalendarSeriesCard";
+import CalendarSkeleton from "../components/skeleton/CalendarSkeleton";
 
 export default function CalendarPage({ useLocalTime, calendarData, loading }) {
   // USE THIS LOGIC IF THERE IS ANY ISSUE WITH THE SIX_HOURS STORING OF
@@ -66,7 +67,7 @@ export default function CalendarPage({ useLocalTime, calendarData, loading }) {
   };
 
   if (loading) {
-    return <div className="status">Loading calendar...</div>;
+    return <CalendarSkeleton />;
   }
 
   return (

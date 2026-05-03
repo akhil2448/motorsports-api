@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import WheelPicker from "./WheelPicker";
 import "../styles/components/profile.css";
+import ProfileSkeleton from "../components/skeleton/ProfileSkeleton";
 
 import { saveUserPreferences } from "../services/userPreferencesService";
 
@@ -71,7 +72,7 @@ export default function Profile({
   };
 
   if (loading || !preferences) {
-    return <div className="status">Loading preferences...</div>;
+    return <ProfileSkeleton />;
   }
 
   if (!enabledSeries) return null;

@@ -7,6 +7,7 @@ import SplashScreen from "./components/SplashScreen";
 import Profile from "./components/Profile";
 import PageHeader from "./components/PageHeader";
 import { getUserPreferences } from "./services/userPreferencesService";
+import EventsSkeleton from "../components/skeleton/EventsSkeleton";
 
 import "./styles/components/splash.css";
 import "./styles/base.css";
@@ -289,7 +290,7 @@ function App() {
         <div key={activeTab} className={`page-content page-${activeTab}`}>
           {activeTab === "events" && (
             <>
-              {loadingEvents && <div className="status">Loading events...</div>}
+              {!showSplash && loadingEvents && <EventsSkeleton />}
 
               {eventsError && (
                 <div className="status error">Failed to load events</div>

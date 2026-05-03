@@ -1,5 +1,6 @@
 import NotificationItem from "../components/NotificationItem";
 import "../styles/components/notifications.css";
+import NotificationSkeleton from "../components/skeleton/NotificationSkeleton";
 
 function groupNotifications(notifications) {
   const groups = {
@@ -34,6 +35,7 @@ export default function Notifications({
   notifications,
   setNotifications,
   setUnreadCount,
+  loading,
 }) {
   // ✅ sort newest first + limit to 20
   const sorted = [...notifications]
@@ -41,6 +43,10 @@ export default function Notifications({
     .slice(0, 20);
 
   const grouped = groupNotifications(sorted);
+
+  if (loading) {
+    return <NotificationSkeleton />;
+  }
 
   return (
     <div className="notifications-container">

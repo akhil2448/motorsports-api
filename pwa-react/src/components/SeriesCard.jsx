@@ -284,6 +284,8 @@ export default function SeriesCard({ event, expanded, onToggle }) {
               "ONGOING"
             ) : eventStatus === "upcoming" ? (
               getCountdown(startDate)
+            ) : eventStatus === "TBA" ? (
+              "Schedule TBD"
             ) : (
               "Done"
             )}

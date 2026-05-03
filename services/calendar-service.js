@@ -41,7 +41,7 @@ async function getLiveCalendar() {
         e.location,
         e.country,
         e.start_date AS event_start,
-        e.end_date AS event_end,
+        e.end_date AS event_end,-
         s.short_name AS series
       FROM events e
       JOIN series s ON e.series_id = s.id
@@ -93,7 +93,14 @@ function formatCalendar(eventRows, unitRows) {
       };
     }
 
-    const endDate = row.event_end ? new Date(row.event_end) : null;
+    let endDate = null;
+
+    if (row.event_end) {
+      endDate = new Date(row.event_end);
+
+      // 🔥 Fix: move to end of day UTC
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
 
     const startDate = row.event_start
       ? new Date(row.event_start)

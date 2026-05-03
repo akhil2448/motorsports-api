@@ -125,6 +125,13 @@ export default function CalendarSeriesCard({
     (a, b) => new Date(a.startDate) - new Date(b.startDate),
   );
 
+  const currentEvent =
+    sortedEvents.find((e) => {
+      const start = new Date(e.startDate);
+      const end = new Date(e.endDate);
+      return now >= start && now <= end;
+    }) || null;
+
   const nextEvent =
     sortedEvents.find((e) => new Date(e.startDate) > now) || null;
 
@@ -207,7 +214,14 @@ export default function CalendarSeriesCard({
         </div>
       </div>
 
-      {nextEvent && (
+      {currentEvent ? (
+        <div className="session-calendar-preview">
+          <span className="session-calendar-preview-name">
+            Now: {currentEvent.name}
+          </span>
+          <span className="session-calendar-preview-time">Ongoing</span>
+        </div>
+      ) : nextEvent ? (
         <div className="session-calendar-preview">
           <span className="session-calendar-preview-name">
             Next: {nextEvent.name}
@@ -216,7 +230,7 @@ export default function CalendarSeriesCard({
             {formatCountdown(new Date(nextEvent.startDate))}
           </span>
         </div>
-      )}
+      ) : null}
 
       {/* EVENTS */}
       <div className="calendar-events">

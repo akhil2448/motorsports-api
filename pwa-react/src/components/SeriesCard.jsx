@@ -143,21 +143,21 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   let eventStatus = event.status;
 
   if (!eventStatus) {
-    if (!sessions || sessions.length === 0) {
+    // 🔥 FIX: if event is in future → ALWAYS upcoming
+    if (startDate && startDate > now) {
+      eventStatus = "upcoming";
+    }
+    // 🔥 if event is ongoing (no sessions yet but within range)
+    else if (startDate && endDate && now >= startDate && now <= endDate) {
+      eventStatus = "ongoing";
+    }
+    // 🔥 if past
+    else if (endDate && now > endDate) {
+      eventStatus = "completed";
+    }
+    // 🔥 fallback
+    else if (!sessions || sessions.length === 0) {
       eventStatus = "TBA";
-    } else {
-      const hasLive = normalizedSessions.some((s) => s.status === "live");
-      const hasUpcoming = normalizedSessions.some(
-        (s) => s.status === "upcoming",
-      );
-
-      if (hasLive) {
-        eventStatus = "live";
-      } else if (hasUpcoming) {
-        eventStatus = "upcoming";
-      } else {
-        eventStatus = "completed";
-      }
     }
   }
 
@@ -295,9 +295,11 @@ export default function SeriesCard({ event, expanded, onToggle }) {
             ) : eventStatus === "upcoming" ? (
               getCountdown(startDate)
             ) : eventStatus === "TBA" ? (
-              "Schedule TBD"
-            ) : (
+              getCountdown(startDate) || "Schedule TBD"
+            ) : eventStatus === "completed" ? (
               "Done"
+            ) : (
+              getCountdown(startDate)
             )}
           </div>
         </div>

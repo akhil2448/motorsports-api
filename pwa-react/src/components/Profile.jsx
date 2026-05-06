@@ -125,9 +125,9 @@ export default function Profile({
 
                   await enablePushNotifications();
 
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 500);
+                  // ✅ update UI instead of reload
+                  setIsSubscribed(true);
+                  setIsPushLoading(false);
                 } catch (err) {
                   console.error(err);
                   setIsPushLoading(false);
@@ -148,9 +148,9 @@ export default function Profile({
 
                   await enablePushNotifications();
 
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 500);
+                  // ✅ update UI instead of reload
+                  setIsSubscribed(true);
+                  setIsPushLoading(false);
                 } catch (err) {
                   console.error(err);
                   setIsPushLoading(false);

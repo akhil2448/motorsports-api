@@ -22,6 +22,7 @@ export default function Profile({
   const [showToast, setShowToast] = useState(false);
 
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(false);
 
   useEffect(() => {
     getPushStatus()
@@ -117,8 +118,22 @@ export default function Profile({
           {pushStatus === "default" && (
             <button
               className="push-enable-btn"
-              onClick={enablePushNotifications}>
-              Enable
+              disabled={isPushLoading}
+              onClick={async () => {
+                try {
+                  setIsPushLoading(true);
+
+                  await enablePushNotifications();
+
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 500);
+                } catch (err) {
+                  console.error(err);
+                  setIsPushLoading(false);
+                }
+              }}>
+              {isPushLoading ? <div className="spinner" /> : "Enable"}
             </button>
           )}
 
@@ -126,8 +141,22 @@ export default function Profile({
           {pushStatus === "granted" && !isSubscribed && (
             <button
               className="push-enable-btn"
-              onClick={enablePushNotifications}>
-              Reconnect
+              disabled={isPushLoading}
+              onClick={async () => {
+                try {
+                  setIsPushLoading(true);
+
+                  await enablePushNotifications();
+
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 500);
+                } catch (err) {
+                  console.error(err);
+                  setIsPushLoading(false);
+                }
+              }}>
+              {isPushLoading ? <div className="spinner" /> : "Reconnect"}
             </button>
           )}
 

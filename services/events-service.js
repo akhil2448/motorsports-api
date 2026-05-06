@@ -125,7 +125,13 @@ async function getUpcomingEvents() {
     } else {
       event.event_start = event.start_date ? new Date(event.start_date) : null;
 
-      event.event_end = event.end_date ? new Date(event.end_date) : null;
+      if (event.end_date) {
+        const end = new Date(event.end_date);
+        end.setUTCHours(23, 59, 59, 999); // 🔥 end of day
+        event.event_end = end;
+      } else {
+        event.event_end = null;
+      }
     }
 
     // ✅ status
@@ -139,25 +145,29 @@ async function getUpcomingEvents() {
     );
 
     // 🔥 event-level state
+    // 🔥 FIX: handle events WITHOUT sessions
     if (hasLiveSession) {
-      event.status = "live"; // ✅ ONLY when session is live
-    } else if (
+      event.status = "live";
+    }
+    // 🔥 EVENT-LEVEL LOGIC (works even without sessions)
+    else if (
       event.event_start &&
       event.event_end &&
       now >= event.event_start &&
       now <= event.event_end
     ) {
-      event.status = "ongoing"; // ✅ new state
-    } else if (hasUpcomingSession) {
+      event.status = "ongoing";
+    } else if (event.event_start && now < event.event_start) {
       event.status = "upcoming";
-    } else {
+    } else if (event.event_end && now > event.event_end) {
       event.status = "completed";
+    } else {
+      event.status = "upcoming"; // safe fallback
     }
   });
 
-  // ✅ pick best event per series
+  // ✅ pick best event per series (DATE-DRIVEN — FIXED)
   const final = {};
-  const priority = { live: 1, ongoing: 2, upcoming: 3, completed: 4 };
 
   Object.values(eventsMap).forEach((event) => {
     const key = event.series;
@@ -169,13 +179,53 @@ async function getUpcomingEvents() {
 
     const current = final[key];
 
-    if (
-      priority[event.status] < priority[current.status] ||
-      (priority[event.status] === priority[current.status] &&
-        event.event_start < current.event_start)
-    ) {
+    const nowTime = now.getTime();
+
+    const eventStart = event.event_start?.getTime();
+    const currentStart = current.event_start?.getTime();
+
+    const eventEnd = event.event_end?.getTime();
+    const currentEnd = current.event_end?.getTime();
+
+    const isEventActive =
+      eventStart && eventEnd && nowTime >= eventStart && nowTime <= eventEnd;
+
+    const isCurrentActive =
+      currentStart &&
+      currentEnd &&
+      nowTime >= currentStart &&
+      nowTime <= currentEnd;
+
+    // ✅ 1. Prefer ongoing/live
+    if (isEventActive && !isCurrentActive) {
       final[key] = event;
+      return;
     }
+
+    // ✅ 2. If both NOT active → pick upcoming
+    if (!isEventActive && !isCurrentActive) {
+      const eventFuture = eventStart && eventStart > nowTime;
+      const currentFuture = currentStart && currentStart > nowTime;
+
+      if (eventFuture && !currentFuture) {
+        final[key] = event;
+        return;
+      }
+
+      // both future → pick closest
+      if (eventFuture && currentFuture && eventStart < currentStart) {
+        final[key] = event;
+        return;
+      }
+
+      // 🔥 FIX: both past → pick latest past
+      if (!eventFuture && !currentFuture && eventStart > currentStart) {
+        final[key] = event;
+        return;
+      }
+    }
+
+    // ✅ 3. fallback → keep closest past (do nothing)
   });
 
   return Object.values(final).sort(

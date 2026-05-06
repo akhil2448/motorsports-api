@@ -7,7 +7,7 @@ import SplashScreen from "./components/SplashScreen";
 import Profile from "./components/Profile";
 import PageHeader from "./components/PageHeader";
 import { getUserPreferences } from "./services/userPreferencesService";
-import EventsSkeleton from "../components/skeleton/EventsSkeleton";
+import EventsSkeleton from "./components/skeleton/EventsSkeleton";
 
 import "./styles/components/splash.css";
 import "./styles/base.css";

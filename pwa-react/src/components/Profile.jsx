@@ -5,6 +5,7 @@ import "../styles/components/profile.css";
 import ProfileSkeleton from "../components/skeleton/ProfileSkeleton";
 
 import { saveUserPreferences } from "../services/userPreferencesService";
+import { getPushStatus } from "../services/pushService";
 
 export default function Profile({
   preferences,
@@ -19,6 +20,14 @@ export default function Profile({
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showToast, setShowToast] = useState(false);
+
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    getPushStatus()
+      .then((data) => setIsSubscribed(data.subscribed))
+      .catch(() => setIsSubscribed(false));
+  }, []);
 
   useEffect(() => {
     if (!preferences || enabledSeries !== null) return;
@@ -88,16 +97,24 @@ export default function Profile({
             <div className="push-title">Race Alerts</div>
             <div className="push-subtext">
               {pushStatus === "unsupported" && "Not supported on this device"}
+
               {pushStatus === "default" &&
                 "Enable alerts for schedule updates and session reminders"}
-              {pushStatus === "granted" && "Push notifications enabled"}
+
+              {pushStatus === "granted" &&
+                isSubscribed &&
+                "Push notifications enabled"}
+
+              {pushStatus === "granted" &&
+                !isSubscribed &&
+                "Reconnect notifications to receive alerts"}
+
               {pushStatus === "denied" &&
                 "Notifications are blocked. Re-enable in iPhone Settings > Safari > Notifications or Website Settings."}
-              {pushStatus === "unsubscribed" && "Reconnect notifications"}
             </div>
           </div>
 
-          {(pushStatus === "default" || pushStatus === "unsubscribed") && (
+          {pushStatus === "default" && (
             <button
               className="push-enable-btn"
               onClick={enablePushNotifications}>
@@ -105,7 +122,17 @@ export default function Profile({
             </button>
           )}
 
-          {pushStatus === "granted" && (
+          {/* ✅ ENABLE BUTTON (when not subscribed) */}
+          {pushStatus === "granted" && !isSubscribed && (
+            <button
+              className="push-enable-btn"
+              onClick={enablePushNotifications}>
+              Reconnect
+            </button>
+          )}
+
+          {/* ✅ ENABLED STATE (only when actually subscribed) */}
+          {pushStatus === "granted" && isSubscribed && (
             <div className="push-enabled-pill">Enabled</div>
           )}
         </div>

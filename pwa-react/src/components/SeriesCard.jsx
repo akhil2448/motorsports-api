@@ -142,12 +142,22 @@ export default function SeriesCard({ event, expanded, onToggle }) {
   // ✅ USE BACKEND STATUS (source of truth)
   let eventStatus = event.status;
 
-  // 🚨 FIX: no sessions → NOT completed
   if (!eventStatus) {
     if (!sessions || sessions.length === 0) {
-      eventStatus = "TBA"; // or "tbd" if you want custom UI
+      eventStatus = "TBA";
     } else {
-      eventStatus = "completed";
+      const hasLive = normalizedSessions.some((s) => s.status === "live");
+      const hasUpcoming = normalizedSessions.some(
+        (s) => s.status === "upcoming",
+      );
+
+      if (hasLive) {
+        eventStatus = "live";
+      } else if (hasUpcoming) {
+        eventStatus = "upcoming";
+      } else {
+        eventStatus = "completed";
+      }
     }
   }
 

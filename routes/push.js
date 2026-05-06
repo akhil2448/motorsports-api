@@ -101,4 +101,39 @@ router.post("/test", async (req, res) => {
   }
 });
 
+/**
+ * GET /push/status
+ * Check if user has active push subscription
+ */
+router.get("/status", async (req, res) => {
+  try {
+    const userId = req.headers["x-user-id"];
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "Missing x-user-id header",
+      });
+    }
+
+    const result = await db.query(
+      `
+      SELECT 1
+      FROM push_subscriptions
+      WHERE user_id = $1
+      LIMIT 1
+      `,
+      [userId],
+    );
+
+    return res.json({
+      subscribed: result.rows.length > 0,
+    });
+  } catch (err) {
+    console.error("Push status error:", err.message);
+    return res.status(500).json({
+      error: "Failed to fetch push status",
+    });
+  }
+});
+
 module.exports = router;

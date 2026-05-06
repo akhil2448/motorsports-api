@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRef } from "react";
 import BottomNav from "./components/BottomNav";
 import SeriesCard from "./components/SeriesCard";
 import CalendarPage from "./components/CalendarPage";
@@ -39,6 +40,8 @@ function App() {
   const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [pushStatus, setPushStatus] = useState("default");
 
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -57,24 +60,29 @@ function App() {
 
       const permission = Notification.permission;
 
+      // ❌ blocked by user
       if (permission === "denied") {
         setPushStatus("denied");
         return;
       }
 
+      // ❌ not yet asked
       if (permission === "default") {
         setPushStatus("default");
         return;
       }
 
+      // ✅ permission granted (IMPORTANT FIX)
+      setPushStatus("granted");
+
+      // 🔍 OPTIONAL: check subscription (do NOT affect pushStatus)
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
 
-        setPushStatus(sub ? "granted" : "unsubscribed");
+        console.log("Push subscription exists:", !!sub);
       } catch (err) {
         console.error("Push status check failed:", err);
-        setPushStatus("default");
       }
     }
 
@@ -174,21 +182,25 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const isFirstLoadRef = useRef(true);
+
   useEffect(() => {
+    if (activeTab !== "notifications") return;
+
     async function fetchNotifications() {
       try {
-        const userId = localStorage.getItem("user_id");
-        if (!userId) {
-          console.error("Missing user_id");
-          return;
+        // ✅ ONLY show skeleton on first load
+        if (isFirstLoadRef.current) {
+          setLoadingNotifications(true);
         }
+
+        const userId = localStorage.getItem("user_id");
+        if (!userId) return;
 
         const since = new Date(0).toISOString();
 
         const res = await fetch(`${API_BASE}/notifications?since=${since}`, {
-          headers: {
-            "x-user-id": userId,
-          },
+          headers: { "x-user-id": userId },
         });
 
         const data = await res.json();
@@ -203,15 +215,18 @@ function App() {
         setUnreadCount(data.unread_count);
       } catch (err) {
         console.error("Failed to fetch notifications", err);
+      } finally {
+        setLoadingNotifications(false);
+        isFirstLoadRef.current = false; // ✅ mark as loaded
       }
     }
 
     fetchNotifications();
 
-    const interval = setInterval(fetchNotifications, 60000);
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [preferences]); // 🔥 KEY CHANGE
+  }, [preferences, activeTab]);
 
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));
@@ -271,7 +286,7 @@ function App() {
       setPushStatus("granted");
     } catch (err) {
       console.error("Push enable failed:", err);
-      setPushStatus("unsubscribed");
+      setPushStatus("default");
     }
   }
 
@@ -322,6 +337,7 @@ function App() {
               notifications={notifications}
               setNotifications={setNotifications}
               setUnreadCount={setUnreadCount}
+              loading={loadingNotifications}
             />
           )}
 

@@ -246,3 +246,14 @@
   font-size: 14px;
   color: #aaa;
 }
+
+.load-more-trigger {
+  height: 1px;
+}
+
+.loading-more {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  color: #8e8e93;
+}

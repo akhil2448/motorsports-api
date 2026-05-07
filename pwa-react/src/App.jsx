@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRef } from "react";
 import BottomNav from "./components/BottomNav";
 import SeriesCard from "./components/SeriesCard";
@@ -41,6 +41,8 @@ function App() {
   const [pushStatus, setPushStatus] = useState("default");
 
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -102,11 +104,7 @@ function App() {
       } catch (err) {
         console.error("Preferences load failed", err);
       } finally {
-        if (!preferences) {
-          loadPreferences();
-        } else {
-          setLoadingPreferences(false);
-        }
+        setLoadingPreferences(false);
       }
     }
 
@@ -191,50 +189,77 @@ function App() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const isFirstLoadRef = useRef(true);
+  const isFetchingRef = useRef(false);
 
-  useEffect(() => {
-    if (activeTab !== "notifications" && !isFirstLoadRef.current) return;
+  const fetchNotifications = useCallback(
+    async ({ loadMore = false } = {}) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
 
-    async function fetchNotifications() {
       try {
-        // ✅ ONLY show skeleton on first load
-        if (isFirstLoadRef.current) {
+        if (isFirstLoadRef.current && !loadMore) {
           setLoadingNotifications(true);
         }
 
         const userId = localStorage.getItem("user_id");
         if (!userId) return;
 
-        const since = new Date(0).toISOString();
+        let url = `${API_BASE}/notifications`;
 
-        const res = await fetch(`${API_BASE}/notifications?since=${since}`, {
+        if (loadMore && nextCursor) {
+          url += `?cursor=${nextCursor}`;
+        }
+
+        const res = await fetch(url, {
           headers: { "x-user-id": userId },
         });
 
         const data = await res.json();
 
-        setNotifications(
-          data.notifications.map((n) => ({
-            ...n,
-            isRead: n.is_read,
-          })),
-        );
+        const mapped = data.notifications.map((n) => ({
+          ...n,
+          isRead: n.is_read,
+        }));
+
+        setNotifications((prev) => {
+          const merged = loadMore ? [...prev, ...mapped] : mapped;
+
+          const uniqueMap = new Map();
+          for (const n of merged) {
+            uniqueMap.set(n.id, n);
+          }
+
+          return Array.from(uniqueMap.values());
+        });
 
         setUnreadCount(data.unread_count);
+        setNextCursor(data.next_cursor);
+        setHasMore(data.has_more);
       } catch (err) {
         console.error("Failed to fetch notifications", err);
       } finally {
         setLoadingNotifications(false);
-        isFirstLoadRef.current = false; // ✅ mark as loaded
+        isFirstLoadRef.current = false;
+        isFetchingRef.current = false;
       }
-    }
+    },
+    [nextCursor],
+  );
 
-    fetchNotifications();
+  useEffect(() => {
+    if (activeTab !== "notifications" && !isFirstLoadRef.current) return;
 
-    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+    fetchNotifications({ loadMore: false });
+
+    const interval = setInterval(
+      () => {
+        fetchNotifications({ loadMore: false });
+      },
+      5 * 60 * 1000,
+    );
 
     return () => clearInterval(interval);
-  }, [preferences, activeTab]);
+  }, [preferences, activeTab, fetchNotifications]);
 
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications));
@@ -346,6 +371,8 @@ function App() {
               setNotifications={setNotifications}
               setUnreadCount={setUnreadCount}
               loading={loadingNotifications}
+              loadMore={() => fetchNotifications({ loadMore: true })}
+              hasMore={hasMore}
             />
           )}
 
@@ -363,7 +390,7 @@ function App() {
         <BottomNav
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          unreadCount={unreadCount}
+          unreadCount={unreadCount > 20 ? "20+" : unreadCount}
         />
       </div>
     </>

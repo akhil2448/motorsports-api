@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import NotificationItem from "../components/NotificationItem";
 import "../styles/components/notifications.css";
 import NotificationSkeleton from "../components/skeleton/NotificationSkeleton";
@@ -37,13 +39,45 @@ export default function Notifications({
   setNotifications,
   setUnreadCount,
   loading,
+  loadMore,
+  hasMore,
 }) {
-  // ✅ sort newest first + limit to 20
-  const sorted = [...notifications]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 20);
+  const loadMoreRef = useRef(null);
+
+  // 🔒 REQUEST LOCK
+  const isFetchingRef = useRef(false);
+
+  const sorted = [...notifications].sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at),
+  );
 
   const grouped = groupNotifications(sorted);
+
+  // ✅ INFINITE SCROLL + LOCK
+  useEffect(() => {
+    if (!hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingRef.current) {
+          isFetchingRef.current = true;
+
+          Promise.resolve(loadMore()).finally(() => {
+            isFetchingRef.current = false;
+          });
+        }
+      },
+      {
+        rootMargin: "200px",
+      },
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   if (loading) {
     return <NotificationSkeleton />;
@@ -56,7 +90,7 @@ export default function Notifications({
         <div className="empty-state">
           <img src={emptyIcon} alt="No notifications" className="empty-icon" />
           <div className="empty-title">No notifications yet</div>
-          <div className="empty-subtitle">Stay tuned for the RAWE CEEK!</div>
+          <div className="empty-subtitle">Stay tuned for the RACE WEEK!</div>
         </div>
       </div>
     );
@@ -109,6 +143,12 @@ export default function Notifications({
             ))}
           </>
         )}
+
+        {/* 🔥 LOAD MORE TRIGGER */}
+        {hasMore && <div ref={loadMoreRef} className="load-more-trigger" />}
+
+        {/* 🔄 LOADING TEXT */}
+        {hasMore && <div className="loading-more">Loading more...</div>}
       </div>
     </div>
   );

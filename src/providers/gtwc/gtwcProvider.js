@@ -24,10 +24,11 @@ async function getEventUrls() {
  * Convert "Friday, 17 July" → Date
  */
 function parseDate(dateText) {
-  const parts = dateText.split(",")[1].trim(); // "17 July"
+  const parts = dateText.split(",")[1].trim();
   const currentYear = new Date().getFullYear();
 
-  return new Date(`${parts} ${currentYear} UTC`);
+  const d = new Date(`${parts} ${currentYear}`);
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
 /**

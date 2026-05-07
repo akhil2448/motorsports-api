@@ -129,6 +129,29 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       event.id,
     ]);
 
+    // =====================================
+    // 🧠 FIX EVENT DATES USING SESSIONS
+    // =====================================
+    await db.query(
+      `
+  UPDATE events e
+  SET
+    start_date = s.min_start,
+    end_date = s.max_end
+  FROM (
+    SELECT
+      event_id,
+      MIN(start_time_utc) AS min_start,
+      MAX(COALESCE(end_time_utc, start_time_utc)) AS max_end
+    FROM sessions
+    WHERE event_id = $1
+    GROUP BY event_id
+  ) s
+  WHERE e.id = s.event_id
+  `,
+      [event.id],
+    );
+
     console.log(`Updated ${sessions.length} sessions`);
 
     // =========================

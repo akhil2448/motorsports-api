@@ -6,7 +6,12 @@ const BASE_URL = "https://www.gt-world-challenge-europe.com";
 function parseDate(dateText) {
   const parts = dateText.split(",")[1].trim();
   const currentYear = new Date().getFullYear();
-  return new Date(`${parts} ${currentYear} UTC`);
+
+  // 🔥 Create LOCAL date first (no timezone shift)
+  const d = new Date(`${parts} ${currentYear}`);
+
+  // 🔥 Normalize to UTC midnight manually
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
 function cleanLocation(raw) {

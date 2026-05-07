@@ -21,7 +21,7 @@ export default function Profile({
   const [isDirty, setIsDirty] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(null);
   const [isPushLoading, setIsPushLoading] = useState(false);
 
   useEffect(() => {
@@ -86,6 +86,10 @@ export default function Profile({
   }
 
   if (!enabledSeries) return null;
+
+  if (pushStatus === "granted" && isSubscribed === null) {
+    return <ProfileSkeleton />; // or small inline spinner
+  }
 
   return (
     <div className="profile-container">

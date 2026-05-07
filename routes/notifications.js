@@ -1,3 +1,7 @@
+const express = require("express");
+const router = express.Router();
+const db = require("../db/pool");
+
 router.get("/", async (req, res) => {
   try {
     const userId = req.headers["x-user-id"];
@@ -15,16 +19,17 @@ router.get("/", async (req, res) => {
 
     // 🧠 WEEK RANGE
     const now = new Date();
-    const day = now.getDay();
+
+    const day = now.getUTCDay();
     const diffToMonday = day === 0 ? -6 : 1 - day;
 
     const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() + diffToMonday);
-    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setUTCDate(now.getUTCDate() + diffToMonday);
+    weekStart.setUTCHours(0, 0, 0, 0);
 
     const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+    weekEnd.setUTCHours(23, 59, 59, 999);
 
     // ============================================
     // 🔥 STEP 1: GET UNREAD COUNT
@@ -200,3 +205,5 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
+module.exports = router;

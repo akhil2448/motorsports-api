@@ -34,11 +34,16 @@ const logoMap = {
   TT: ttLogo,
 };
 
+const parseDateOnly = (value) => {
+  const [y, m, d] = value.split("T")[0].split("-");
+  return new Date(y, m - 1, d);
+};
+
 const formatDateRange = (start, end) => {
   const options = { weekday: "short", day: "numeric", month: "short" };
 
-  const startDate = new Date(start.split("T")[0]);
-  const endDate = new Date(end.split("T")[0]);
+  const startDate = parseDateOnly(start);
+  const endDate = parseDateOnly(end);
 
   return `${startDate.toLocaleDateString("en-US", options)} - ${endDate.toLocaleDateString("en-US", options)}`;
 };
@@ -122,18 +127,18 @@ export default function CalendarSeriesCard({
   }, [expanded]);
 
   const sortedEvents = [...data.events].sort(
-    (a, b) => new Date(a.startDate) - new Date(b.startDate),
+    (a, b) => parseDateOnly(a.startDate) - parseDateOnly(b.startDate),
   );
 
   const currentEvent =
     sortedEvents.find((e) => {
-      const start = new Date(e.startDate);
+      const start = parseDateOnly(e.startDate);
       const end = new Date(e.endDate);
       return now >= start && now <= end;
     }) || null;
 
   const nextEvent =
-    sortedEvents.find((e) => new Date(e.startDate) > now) || null;
+    sortedEvents.find((e) => parseDateOnly(e.startDate) > now) || null;
 
   const formatCountdown = (target) => {
     const diff = target - now;
@@ -208,7 +213,7 @@ export default function CalendarSeriesCard({
 
         <div className="date-container">
           <div className="event-date-big">
-            {data.events.filter((e) => new Date(e.endDate) >= now).length}{" "}
+            {data.events.filter((e) => parseDateOnly(e.endDate) >= now).length}{" "}
             Upcoming
           </div>
         </div>
@@ -227,7 +232,7 @@ export default function CalendarSeriesCard({
             Next: {nextEvent.name}
           </span>
           <span className="session-calendar-preview-time">
-            {formatCountdown(new Date(nextEvent.startDate))}
+            {formatCountdown(parseDateOnly(nextEvent.startDate))}
           </span>
         </div>
       ) : null}
@@ -237,14 +242,14 @@ export default function CalendarSeriesCard({
         {expanded &&
           data.events.map((event, idx) => {
             //const start = new Date(event.startDate);
-            const end = new Date(event.endDate);
+            const end = new Date(event.endDate); // keep full timestamp
 
             const isCompleted = now > end;
 
             const isNext =
               nextEvent &&
-              new Date(event.startDate).getTime() ===
-                new Date(nextEvent.startDate).getTime();
+              parseDateOnly(event.startDate).getTime() ===
+                parseDateOnly(nextEvent.startDate).getTime();
 
             return (
               <div

@@ -37,8 +37,8 @@ const logoMap = {
 const formatDateRange = (start, end) => {
   const options = { weekday: "short", day: "numeric", month: "short" };
 
-  const startDate = new Date(start);
-  const endDate = new Date(end);
+  const startDate = new Date(start.split("T")[0]);
+  const endDate = new Date(end.split("T")[0]);
 
   return `${startDate.toLocaleDateString("en-US", options)} - ${endDate.toLocaleDateString("en-US", options)}`;
 };

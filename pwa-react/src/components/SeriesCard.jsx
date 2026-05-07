@@ -32,9 +32,11 @@ export default function SeriesCard({ event, expanded, onToggle }) {
 
   const safeParseDate = (value) => {
     if (!value) return null;
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return null;
-    return d;
+
+    const datePart = value.split("T")[0]; // remove time
+    const [y, m, d] = datePart.split("-");
+
+    return new Date(y, m - 1, d); // local date (NO timezone shift)
   };
 
   const startDate = safeParseDate(event_start) || safeParseDate(start_date);

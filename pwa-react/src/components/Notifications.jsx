@@ -1,6 +1,7 @@
 import NotificationItem from "../components/NotificationItem";
 import "../styles/components/notifications.css";
 import NotificationSkeleton from "../components/skeleton/NotificationSkeleton";
+import emptyIcon from "../assets/icons/notification-empty.svg";
 
 function groupNotifications(notifications) {
   const groups = {
@@ -46,6 +47,19 @@ export default function Notifications({
 
   if (loading) {
     return <NotificationSkeleton />;
+  }
+
+  // ✅ EMPTY STATE
+  if (!loading && sorted.length === 0) {
+    return (
+      <div className="notifications-container empty">
+        <div className="empty-state">
+          <img src={emptyIcon} alt="No notifications" className="empty-icon" />
+          <div className="empty-title">No notifications yet</div>
+          <div className="empty-subtitle">Stay tuned for the RAWE CEEK!</div>
+        </div>
+      </div>
+    );
   }
 
   return (

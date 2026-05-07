@@ -216,3 +216,33 @@
 .notification-series-logo.indycar {
   height: 16px;
 }
+
+.notifications-container.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 70vh;
+}
+
+.empty-state {
+  text-align: center;
+  opacity: 0.8;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.empty-subtitle {
+  font-size: 14px;
+  color: #aaa;
+}

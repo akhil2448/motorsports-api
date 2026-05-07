@@ -90,6 +90,8 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (activeTab !== "profile" || preferences) return;
+
     async function loadPreferences() {
       try {
         const userId = localStorage.getItem("user_id");
@@ -100,12 +102,16 @@ function App() {
       } catch (err) {
         console.error("Preferences load failed", err);
       } finally {
-        setLoadingPreferences(false);
+        if (!preferences) {
+          loadPreferences();
+        } else {
+          setLoadingPreferences(false);
+        }
       }
     }
 
     loadPreferences();
-  }, []);
+  }, [activeTab, preferences]);
 
   useEffect(() => {
     if (preferences) {
@@ -158,20 +164,22 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (activeTab !== "calendar" || calendarData.length > 0) return;
+
     async function loadCalendar() {
       try {
         setLoadingCalendar(true);
         const data = await fetchCalendar();
         setCalendarData(data);
       } catch (err) {
-        console.error("Calendar preload failed", err);
+        console.error("Calendar load failed", err);
       } finally {
         setLoadingCalendar(false);
       }
     }
 
     loadCalendar();
-  }, []);
+  }, [activeTab, calendarData.length]);
 
   const handleToggleEvent = (eventId) => {
     setEvents((prev) =>
@@ -185,7 +193,7 @@ function App() {
   const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
-    if (activeTab !== "notifications") return;
+    if (activeTab !== "notifications" && !isFirstLoadRef.current) return;
 
     async function fetchNotifications() {
       try {

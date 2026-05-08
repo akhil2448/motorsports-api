@@ -206,4 +206,36 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * PATCH /notifications/:id/read
+ */
+router.patch("/:id/read", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.headers["x-user-id"];
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "Missing 'x-user-id'",
+      });
+    }
+
+    const result = await db.query(
+      `
+  UPDATE notifications
+  SET is_read = true
+  WHERE id = $1
+  AND user_id = $2
+  RETURNING id, is_read
+  `,
+      [id, userId],
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Mark read error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

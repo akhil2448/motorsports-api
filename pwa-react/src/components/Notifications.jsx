@@ -90,7 +90,9 @@ export default function Notifications({
         <div className="empty-state">
           <img src={emptyIcon} alt="No notifications" className="empty-icon" />
           <div className="empty-title">No notifications yet</div>
-          <div className="empty-subtitle">Stay tuned for the RACE WEEK!</div>
+          <div className="empty-subtitle">
+            Stay tuned for the next RAWE CEEK!
+          </div>
         </div>
       </div>
     );
